@@ -1,0 +1,13 @@
+{
+  "name": "notes-world",
+  "version": "1.0.0",
+  "description": "Notes World - UGC NET & MH-SET Study Portal with Netlify Serverless Cloud Sync",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'Static build complete'"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0",
+    "@netlify/functions": "^2.8.2"
+  }
+}

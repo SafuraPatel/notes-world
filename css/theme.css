@@ -1,0 +1,95 @@
+/* ==========================================================================
+   THEME.CSS - Notes World (Mobile-First & Clean)
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+  /* Dark Mode (Default) */
+  --bg-main: #0c1017;
+  --bg-card: #151c28;
+  --bg-input: #1a2332;
+  --bg-hover: #222d40;
+
+  --text-main: #f1f5f9;
+  --text-sub: #94a3b8;
+  --text-muted: #64748b;
+
+  --accent-p1: #8b5cf6; /* Paper 1 Violet */
+  --accent-p2: #10b981; /* Paper 2 Green */
+  --accent-current: #8b5cf6;
+
+  --accent-trick: #06b6d4; /* Cyan for tricks */
+  --accent-warn: #f59e0b;
+  --accent-danger: #ef4444;
+
+  --border: rgba(255, 255, 255, 0.1);
+  --border-focus: rgba(139, 92, 246, 0.5);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-full: 9999px;
+
+  --font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+[data-theme="light"] {
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-input: #f1f5f9;
+  --bg-hover: #e2e8f0;
+
+  --text-main: #0f172a;
+  --text-sub: #475569;
+  --text-muted: #94a3b8;
+
+  --accent-p1: #7c3aed;
+  --accent-p2: #059669;
+  --accent-current: #7c3aed;
+
+  --border: rgba(15, 23, 42, 0.1);
+  --border-focus: rgba(124, 58, 237, 0.5);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font);
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+body.paper-1-theme {
+  --accent-current: var(--accent-p1);
+}
+
+body.paper-2-theme {
+  --accent-current: var(--accent-p2);
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  color: inherit;
+}
