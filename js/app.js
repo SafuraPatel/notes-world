@@ -414,9 +414,31 @@ class AppController {
       });
     }
 
-    // Escape key closes modals
+    // Escape key closes modals and header dropdown
     window.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") closeModals();
+      if (e.key === "Escape") {
+        closeModals();
+        this.closeStickyDropdown();
+      }
+    });
+
+    // Toggle Header Dropdown (saves vertical space)
+    if (this.stickyHeaderDropdownBtn) {
+      this.stickyHeaderDropdownBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (!this.stickyNavArea) return;
+        const isOpen = this.stickyNavArea.classList.toggle("menu-open");
+        this.stickyHeaderDropdownBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      });
+    }
+
+    // Close header dropdown when clicking outside
+    document.addEventListener("click", (e) => {
+      if (this.stickyNavArea && this.stickyNavArea.classList.contains("menu-open")) {
+        if (!this.stickyNavArea.contains(e.target)) {
+          this.closeStickyDropdown();
+        }
+      }
     });
   }
 
