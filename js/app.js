@@ -895,8 +895,32 @@ class AppController {
     const isP1 = state.activePaper === "paper1";
     this.unitsSectionTitle.textContent = isP1 ? "Paper 1 Units" : "Paper 2 (CS) Units";
 
+    let unitsList = paperData.units;
+    if (state.selectedUnitId !== "all") {
+      unitsList = unitsList.filter(u => u.id === state.selectedUnitId);
+    }
+    if (state.searchQuery) {
+      const q = state.searchQuery.toLowerCase();
+      unitsList = unitsList.filter(u =>
+        u.name.toLowerCase().includes(q) ||
+        `unit ${u.unitNumber}`.includes(q) ||
+        (u.theoryNotes && u.theoryNotes.some(t => t.title.toLowerCase().includes(q))) ||
+        (u.shortTricks && u.shortTricks.some(tr => tr.title.toLowerCase().includes(q)))
+      );
+    }
+
+    if (unitsList.length === 0) {
+      this.unitsListContainer.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📚</div>
+          <p>No units matching the current filter or search.</p>
+        </div>
+      `;
+      return;
+    }
+
     let html = "";
-    paperData.units.forEach(u => {
+    unitsList.forEach(u => {
       const theoryCount = u.theoryNotes ? u.theoryNotes.length : 0;
       const tricksCount = u.shortTricks ? u.shortTricks.length : 0;
       const questionsCount = questionsManager.getUnitQuestionCount(state.activePaper, u.id);
