@@ -10,7 +10,7 @@ class AppStore {
   constructor() {
     this.state = {
       activePaper: localStorage.getItem("notes_world_active_paper") || "paper1", // 'paper1' or 'paper2'
-      activeSection: localStorage.getItem("notes_world_active_section") || "units", // 'units', 'theory', 'tricks', 'notepad'
+      activeSection: localStorage.getItem("notes_world_active_section") || "units", // 'units', 'theory', 'tricks', 'questions', 'notepad'
       selectedUnitId: "all", // 'all' or specific unitId
       searchQuery: "",
       theme: localStorage.getItem("notes_world_theme") || "dark"

@@ -95,11 +95,11 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
-/* 4 Main Tabs: Units, Theory, Tricks, Notepad */
+/* 5 Main Tabs: Units, Theory, Tricks, Questions, Notepad */
 .nav-tabs-bar {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.3rem;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.25rem;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);

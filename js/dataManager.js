@@ -8,8 +8,8 @@
 import { paper1Data as defaultP1 } from "./data/paper1Data.js";
 import { paper2Data as defaultP2 } from "./data/paper2Data.js";
 
-const STORAGE_KEY_P1 = "notes_world_data_p1_v2";
-const STORAGE_KEY_P2 = "notes_world_data_p2_v2";
+const STORAGE_KEY_P1 = "notes_world_data_p1_v5";
+const STORAGE_KEY_P2 = "notes_world_data_p2_v5";
 
 export class DataManager {
   constructor() {
@@ -71,10 +71,17 @@ export class DataManager {
         if (res.ok) {
           const json = await res.json();
           if (json && json.success && json.data && json.data.units) {
-            this.data[paperId] = json.data;
-            const storageKey = paperId === "paper1" ? STORAGE_KEY_P1 : STORAGE_KEY_P2;
-            localStorage.setItem(storageKey, JSON.stringify(json.data));
-            hasUpdate = true;
+            const cloudTopics = json.data.units.reduce((acc, u) => acc + (u.theoryNotes ? u.theoryNotes.length : 0), 0);
+            const currentTopics = this.data[paperId].units.reduce((acc, u) => acc + (u.theoryNotes ? u.theoryNotes.length : 0), 0);
+            if (cloudTopics >= currentTopics) {
+              this.data[paperId] = json.data;
+              const storageKey = paperId === "paper1" ? STORAGE_KEY_P1 : STORAGE_KEY_P2;
+              localStorage.setItem(storageKey, JSON.stringify(json.data));
+              hasUpdate = true;
+            } else {
+              // Local dataset is newer/larger: sync UP to cloud
+              this.syncToCloud(paperId);
+            }
           }
         }
       }

@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Local database and scratch files
+.local_db.json
+
+# Editor
+.vscode/
+
+# Python cache
+__pycache__/
+*.pyc

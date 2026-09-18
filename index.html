@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Notes World - UGC NET &amp; MH-SET</title>
-  <meta name="description" content="Notes World: Ultra-simple, mobile-first study portal for UGC NET and MH-SET. Essential Units, Theory bullet points, Short Tricks, and personal Notepad for Paper 1 and Paper 2 Computer Science.">
+  <title>Notes World</title>
+  <meta name="description"
+    content="Notes World: Ultra-simple, mobile-first study portal for UGC NET and MH-SET. Essential Units, Theory bullet points, Short Tricks, and personal Notepad for Paper 1 and Paper 2 Computer Science.">
   <link rel="stylesheet" href="css/theme.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
 </head>
+
 <body class="paper-1-theme">
   <div class="app-wrapper">
     <!-- Sticky Mobile Header -->
@@ -18,7 +21,8 @@
           <span class="brand-logo-badge" aria-label="Books Icon">📚</span>
           <span>Notes World</span>
         </div>
-        <button id="themeToggleBtn" class="theme-toggle-btn" type="button" aria-label="Toggle Dark or Light Mode" title="Toggle Theme">
+        <button id="themeToggleBtn" class="theme-toggle-btn" type="button" aria-label="Toggle Dark or Light Mode"
+          title="Toggle Theme">
           <span id="themeIcon">🌙</span>
         </button>
       </div>
@@ -26,14 +30,14 @@
       <!-- 2-Way Paper Switcher -->
       <nav class="paper-switcher" aria-label="Paper Selection">
         <button id="btnPaper1" class="paper-tab-btn active" type="button">
-          Paper 1 (General)
+          Paper 1
         </button>
         <button id="btnPaper2" class="paper-tab-btn" type="button">
-          Paper 2 (CS)
+          Paper 2
         </button>
       </nav>
 
-      <!-- 4 Essential Mobile Tabs: Units, Theory, Tricks, Notepad -->
+      <!-- 5 Essential Mobile Tabs: Units, Theory, Tricks, Questions, Notepad -->
       <nav class="nav-tabs-bar" aria-label="Section Navigation" role="tablist">
         <button class="tab-btn active" data-section="units" type="button" role="tab">
           <span class="tab-icon">📚</span>
@@ -46,6 +50,10 @@
         <button class="tab-btn" data-section="tricks" type="button" role="tab">
           <span class="tab-icon">💡</span>
           <span>Tricks</span>
+        </button>
+        <button class="tab-btn" data-section="questions" type="button" role="tab">
+          <span class="tab-icon">🎯</span>
+          <span>Questions <span id="tabQuestionsCountBadge">(0)</span></span>
         </button>
         <button class="tab-btn" data-section="notepad" type="button" role="tab">
           <span class="tab-icon">📝</span>
@@ -86,48 +94,72 @@
       <!-- 2. THEORY SECTION (Pure Bullet & Point Notes) -->
       <section id="theorySection" class="content-section" style="display: none;">
         <div class="section-header">
-          <h2 class="section-title">
-            <span>📖</span>
-            <span>Theory (Bullet Notes)</span>
-          </h2>
-          <span id="theoryCountBadge" class="section-badge">0 Topics</span>
+          <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+            <h2 class="section-title">
+              <span>📖</span>
+              <span>Theory</span>
+            </h2>
+            <span id="theoryCountBadge" class="section-badge">0 Topics</span>
+          </div>
+          <button id="btnHeaderAddTheory" class="btn-header-add" type="button">
+            <span>➕</span> Add Topic
+          </button>
         </div>
 
         <div id="theoryCardsContainer" class="theory-cards-grid">
           <!-- Dynamically populated via JS -->
-        </div>
-
-        <!-- Add More Theory Action at the Bottom -->
-        <div class="section-bottom-action">
-          <button id="btnOpenAddTheoryModal" class="btn-add-more" type="button">
-            <span>➕</span> Add More Theory Topic
-          </button>
         </div>
       </section>
 
       <!-- 3. TRICKS SECTION (Short Tricks & Mnemonics) -->
       <section id="tricksSection" class="content-section" style="display: none;">
         <div class="section-header">
-          <h2 class="section-title">
-            <span>💡</span>
-            <span>Short Tricks &amp; Mnemonics</span>
-          </h2>
-          <span id="tricksCountBadge" class="section-badge">0 Tricks</span>
+          <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+            <h2 class="section-title">
+              <span>💡</span>
+              <span>Short Tricks &amp; Mnemonics</span>
+            </h2>
+            <span id="tricksCountBadge" class="section-badge">0 Tricks</span>
+          </div>
+          <button id="btnHeaderAddTrick" class="btn-header-add" type="button">
+            <span>➕</span> Add Trick
+          </button>
         </div>
 
         <div id="tricksContainer" class="tricks-grid">
           <!-- Dynamically populated via JS -->
         </div>
+      </section>
 
-        <!-- Add More Tricks Action at the Bottom -->
-        <div class="section-bottom-action">
-          <button id="btnOpenAddTrickModal" class="btn-add-more" type="button">
-            <span>➕</span> Add More Short Trick
+      <!-- 4. QUESTIONS (PYQ) SECTION -->
+      <section id="questionsSection" class="content-section" style="display: none;">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span>🎯</span>
+            <span id="questionsSectionTitle">Unit-wise PYQs (Paper 1)</span>
+          </h2>
+          <span id="questionsCountBadge" class="section-badge">0 Questions</span>
+        </div>
+
+        <!-- Score & Progress Stats Bar -->
+        <div id="pyqStatsBar" class="pyq-stats-bar">
+          <div class="pyq-stats-group">
+            <span class="pyq-stat-pill" id="pyqAttemptedPill">📝 Attempted: 0/0</span>
+            <span class="pyq-stat-pill correct" id="pyqScorePill">✓ Score: 0</span>
+            <span class="pyq-stat-pill accuracy" id="pyqAccuracyPill">🎯 Accuracy: 0%</span>
+          </div>
+          <button id="btnResetAllPyqs" class="btn-reset-pyqs" type="button" title="Reset all answered questions in this paper">
+            ↺ Reset Answers
           </button>
+        </div>
+
+        <!-- Questions Cards Container -->
+        <div id="questionsCardsContainer" class="questions-list">
+          <!-- Dynamically populated via JS -->
         </div>
       </section>
 
-      <!-- 4. NOTEPAD SECTION (My Points - Newest Always on Top) -->
+      <!-- 5. NOTEPAD SECTION (My Points - Newest Always on Top) -->
       <section id="notepadSection" class="content-section" style="display: none;">
         <div class="section-header">
           <h2 class="section-title">
@@ -141,13 +173,13 @@
           <!-- Note Form -->
           <form id="createNoteForm" class="notepad-form-card">
             <div class="form-row">
-              <input type="text" class="point-title-input" placeholder="Point Title (e.g., De Morgan Laws)" required>
+              <input type="text" class="point-title-input" placeholder="Title (e.g., Bloom taxonomy)" required>
               <select id="noteUnitSelect" class="point-unit-select">
                 <!-- Dynamically populated -->
               </select>
             </div>
 
-            <textarea class="point-textarea" placeholder="Write key points, formulas, or revision summaries here... (e.g. • Point 1)" required></textarea>
+            <textarea class="point-textarea" placeholder="Write your notes here" required></textarea>
 
             <div class="form-bottom-row">
               <div class="color-dots-group" title="Card Color">
@@ -158,7 +190,7 @@
                 <span class="color-dot" data-color="#ef4444" style="background: #ef4444;"></span>
               </div>
               <button type="submit" class="btn-save-point">
-                💾 Save Point (Top)
+                💾 Save
               </button>
             </div>
           </form>
@@ -190,15 +222,17 @@
         </div>
         <div class="modal-field">
           <label for="theoryModalTopicTitle">Topic Title:</label>
-          <input type="text" id="theoryModalTopicTitle" class="modal-input" placeholder="e.g. Asymptotic Notations &amp; Recurrences" required>
+          <input type="text" id="theoryModalTopicTitle" class="modal-input"
+            placeholder="e.g. Asymptotic Notations &amp; Recurrences" required>
         </div>
         <div class="modal-field">
-          <label for="theoryModalPoints">Theory Bullet Points (one point per line):</label>
-          <textarea id="theoryModalPoints" class="modal-textarea" rows="6" placeholder="• Point 1&#10;• Point 2&#10;• Point 3" required></textarea>
+          <label for="theoryModalPoints">Theory:</label>
+          <textarea id="theoryModalPoints" class="modal-textarea" rows="6"
+            placeholder="• Point 1&#10;• Point 2&#10;• Point 3" required></textarea>
         </div>
         <div class="modal-actions">
           <button type="button" id="btnCancelTheoryModal" class="btn-modal-cancel">Cancel</button>
-          <button type="submit" class="btn-modal-save">💾 Save Topic</button>
+          <button type="submit" class="btn-modal-save">💾 Save</button>
         </div>
       </form>
     </div>
@@ -219,23 +253,64 @@
         </div>
         <div class="modal-field">
           <label for="trickModalTitleInput">Trick Title:</label>
-          <input type="text" id="trickModalTitleInput" class="modal-input" placeholder="e.g. Cache Mapping Tag Formula" required>
+          <input type="text" id="trickModalTitleInput" class="modal-input" placeholder="e.g. memory hierarchy" required>
         </div>
         <div class="modal-field">
           <label for="trickModalMnemonic">Mnemonic / Shortcut Rule:</label>
-          <input type="text" id="trickModalMnemonic" class="modal-input" placeholder="e.g. W = B + L - 1" required>
+          <input type="text" id="trickModalMnemonic" class="modal-input" placeholder="Ramu caca please samosa" required>
         </div>
         <div class="modal-field">
           <label for="trickModalExplanation">Explanation:</label>
-          <textarea id="trickModalExplanation" class="modal-textarea" rows="3" placeholder="Brief explanation of how this shortcut works..." required></textarea>
+          <textarea id="trickModalExplanation" class="modal-textarea" rows="3"
+            placeholder="Brief explanation of how this shortcut works..." required></textarea>
         </div>
         <div class="modal-field">
           <label for="trickModalProTip">Exam Pro-Tip (Optional):</label>
-          <input type="text" id="trickModalProTip" class="modal-input" placeholder="e.g. Watch out for base 2 exponent traps">
+          <input type="text" id="trickModalProTip" class="modal-input" placeholder="e.g. imp area">
         </div>
         <div class="modal-actions">
           <button type="button" id="btnCancelTrickModal" class="btn-modal-cancel">Cancel</button>
-          <button type="submit" class="btn-modal-save">💾 Save Trick</button>
+          <button type="submit" class="btn-modal-save">💾 Save</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 3. Note Editor Modal -->
+    <div id="noteModal" class="app-modal" style="display: none;" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h3 id="noteModalTitle" class="modal-title">✏️ Edit Study Point</h3>
+        <button id="btnCloseNoteModal" class="modal-close-btn" type="button" aria-label="Close">✕</button>
+      </div>
+      <form id="noteModalForm" class="modal-form">
+        <input type="hidden" id="noteModalNoteId" value="">
+        <div class="modal-field">
+          <label for="noteModalUnitSelect">Select Unit:</label>
+          <select id="noteModalUnitSelect" class="modal-input" required>
+            <!-- Populated via JS -->
+          </select>
+        </div>
+        <div class="modal-field">
+          <label for="noteModalTitleInput">Point Title:</label>
+          <input type="text" id="noteModalTitleInput" class="modal-input" placeholder="e.g. Bloom taxonomy" required>
+        </div>
+        <div class="modal-field">
+          <label for="noteModalContentTextarea">Point Notes:</label>
+          <textarea id="noteModalContentTextarea" class="modal-textarea" rows="6"
+            placeholder="Write your notes here..." required></textarea>
+        </div>
+        <div class="modal-field">
+          <label>Card Accent Color:</label>
+          <div id="noteModalColorDots" class="color-dots-group" style="padding-top: 0.2rem;">
+            <span class="color-dot active" data-color="#8b5cf6" style="background: #8b5cf6;"></span>
+            <span class="color-dot" data-color="#10b981" style="background: #10b981;"></span>
+            <span class="color-dot" data-color="#06b6d4" style="background: #06b6d4;"></span>
+            <span class="color-dot" data-color="#f59e0b" style="background: #f59e0b;"></span>
+            <span class="color-dot" data-color="#ef4444" style="background: #ef4444;"></span>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="btnCancelNoteModal" class="btn-modal-cancel">Cancel</button>
+          <button type="submit" class="btn-modal-save">💾 Save Changes</button>
         </div>
       </form>
     </div>
@@ -246,4 +321,5 @@
 
   <script type="module" src="js/app.js"></script>
 </body>
+
 </html>

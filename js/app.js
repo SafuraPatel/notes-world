@@ -7,6 +7,7 @@
 import { store } from "./store.js";
 import { notesManager } from "./notesManager.js";
 import { dataManager } from "./dataManager.js";
+import { questionsManager } from "./questionsManager.js";
 
 // Toast Notification
 export function showToast(message, type = "info") {
@@ -66,6 +67,11 @@ class AppController {
       this.renderNotepadSection();
       this.updateNotesBadge();
     });
+    // Reactive questions updates
+    questionsManager.subscribe(() => {
+      this.renderQuestionsSection();
+      this.updateQuestionsBadge();
+    });
   }
 
   initElements() {
@@ -85,6 +91,7 @@ class AppController {
     this.unitsSection = document.getElementById("unitsSection");
     this.theorySection = document.getElementById("theorySection");
     this.tricksSection = document.getElementById("tricksSection");
+    this.questionsSection = document.getElementById("questionsSection");
     this.notepadSection = document.getElementById("notepadSection");
 
     // Dynamic containers
@@ -92,17 +99,28 @@ class AppController {
     this.unitsListContainer = document.getElementById("unitsListContainer");
     this.theoryCardsContainer = document.getElementById("theoryCardsContainer");
     this.tricksContainer = document.getElementById("tricksContainer");
+    this.questionsCardsContainer = document.getElementById("questionsCardsContainer");
     this.userNotesGrid = document.getElementById("userNotesGrid");
 
     // Badges & Titles
     this.theoryCountBadge = document.getElementById("theoryCountBadge");
     this.tricksCountBadge = document.getElementById("tricksCountBadge");
+    this.questionsCountBadge = document.getElementById("questionsCountBadge");
+    this.questionsSectionTitle = document.getElementById("questionsSectionTitle");
     this.notesCountBadge = document.getElementById("notesCountBadge");
     this.notepadSectionTitle = document.getElementById("notepadSectionTitle");
 
-    // Bottom Action Buttons
-    this.btnOpenAddTheoryModal = document.getElementById("btnOpenAddTheoryModal");
-    this.btnOpenAddTrickModal = document.getElementById("btnOpenAddTrickModal");
+    // Questions Stats Elements
+    this.tabQuestionsCountBadge = document.getElementById("tabQuestionsCountBadge");
+    this.pyqAttemptedPill = document.getElementById("pyqAttemptedPill");
+    this.pyqScorePill = document.getElementById("pyqScorePill");
+    this.pyqAccuracyPill = document.getElementById("pyqAccuracyPill");
+    this.btnResetAllPyqs = document.getElementById("btnResetAllPyqs");
+    this.questionsDisplayLimit = 15;
+
+    // Action Buttons
+    this.btnHeaderAddTheory = document.getElementById("btnHeaderAddTheory");
+    this.btnHeaderAddTrick = document.getElementById("btnHeaderAddTrick");
 
     // Modals & Overlay
     this.modalOverlay = document.getElementById("modalOverlay");
@@ -130,6 +148,18 @@ class AppController {
     this.trickModalProTip = document.getElementById("trickModalProTip");
     this.btnCloseTrickModal = document.getElementById("btnCloseTrickModal");
     this.btnCancelTrickModal = document.getElementById("btnCancelTrickModal");
+
+    // Note (Notepad) Modal elements
+    this.noteModal = document.getElementById("noteModal");
+    this.noteModalTitle = document.getElementById("noteModalTitle");
+    this.noteModalForm = document.getElementById("noteModalForm");
+    this.noteModalNoteId = document.getElementById("noteModalNoteId");
+    this.noteModalUnitSelect = document.getElementById("noteModalUnitSelect");
+    this.noteModalTitleInput = document.getElementById("noteModalTitleInput");
+    this.noteModalContentTextarea = document.getElementById("noteModalContentTextarea");
+    this.noteModalColorDots = document.getElementById("noteModalColorDots");
+    this.btnCloseNoteModal = document.getElementById("btnCloseNoteModal");
+    this.btnCancelNoteModal = document.getElementById("btnCancelNoteModal");
   }
 
   initTheme() {
@@ -198,15 +228,15 @@ class AppController {
     });
 
     // Modals: Open Add Theory
-    if (this.btnOpenAddTheoryModal) {
-      this.btnOpenAddTheoryModal.addEventListener("click", () => {
+    if (this.btnHeaderAddTheory) {
+      this.btnHeaderAddTheory.addEventListener("click", () => {
         this.openAddTheoryModal();
       });
     }
 
     // Modals: Open Add Trick
-    if (this.btnOpenAddTrickModal) {
-      this.btnOpenAddTrickModal.addEventListener("click", () => {
+    if (this.btnHeaderAddTrick) {
+      this.btnHeaderAddTrick.addEventListener("click", () => {
         this.openAddTrickModal();
       });
     }
@@ -218,6 +248,8 @@ class AppController {
     if (this.btnCancelTheoryModal) this.btnCancelTheoryModal.addEventListener("click", closeModals);
     if (this.btnCloseTrickModal) this.btnCloseTrickModal.addEventListener("click", closeModals);
     if (this.btnCancelTrickModal) this.btnCancelTrickModal.addEventListener("click", closeModals);
+    if (this.btnCloseNoteModal) this.btnCloseNoteModal.addEventListener("click", closeModals);
+    if (this.btnCancelNoteModal) this.btnCancelNoteModal.addEventListener("click", closeModals);
 
     // Theory Form Submit
     if (this.theoryModalForm) {
@@ -234,6 +266,30 @@ class AppController {
         this.handleTrickFormSubmit();
       });
     }
+
+    // Note (Notepad) Edit Form Submit
+    if (this.noteModalForm) {
+      this.noteModalForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        this.handleNoteModalSubmit();
+      });
+    }
+
+    // Reset All PYQs Button
+    if (this.btnResetAllPyqs) {
+      this.btnResetAllPyqs.addEventListener("click", () => {
+        const state = store.getState();
+        if (confirm("Reset all your question answers for this paper to re-practice?")) {
+          questionsManager.resetAll(state.activePaper);
+          showToast("All question answers reset!", "info");
+        }
+      });
+    }
+
+    // Escape key closes modals
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeModals();
+    });
   }
 
   // --- MODAL CONTROLLERS ---
@@ -242,6 +298,7 @@ class AppController {
     if (this.modalOverlay) this.modalOverlay.style.display = "none";
     if (this.theoryModal) this.theoryModal.style.display = "none";
     if (this.trickModal) this.trickModal.style.display = "none";
+    if (this.noteModal) this.noteModal.style.display = "none";
   }
 
   populateModalUnitOptions(selectElement, defaultUnitId) {
@@ -380,6 +437,78 @@ class AppController {
     this.closeAllModals();
   }
 
+  populateNoteModalUnitOptions(selectElement, defaultUnitId) {
+    const paperData = store.getCurrentPaperData();
+    let html = `<option value="general" ${defaultUnitId === "general" || !defaultUnitId ? "selected" : ""}>General Points</option>`;
+    paperData.units.forEach(u => {
+      const selected = u.id === defaultUnitId ? "selected" : "";
+      html += `<option value="${u.id}" ${selected}>Unit ${u.unitNumber}: ${escapeHtml(u.name)}</option>`;
+    });
+    selectElement.innerHTML = html;
+  }
+
+  openEditNoteModal(noteId) {
+    const note = notesManager.notes.find(n => n.id === noteId);
+    if (!note) return;
+
+    this.populateNoteModalUnitOptions(this.noteModalUnitSelect, note.unitId);
+    this.noteModalTitle.textContent = "✏️ Edit Study Point";
+    this.noteModalNoteId.value = note.id;
+    this.noteModalTitleInput.value = note.title || "";
+    this.noteModalContentTextarea.value = note.content || "";
+
+    // Set active color dot
+    if (this.noteModalColorDots) {
+      const noteColor = (note.color || "#8b5cf6").toLowerCase();
+      let matched = false;
+      const dots = this.noteModalColorDots.querySelectorAll(".color-dot");
+      dots.forEach(d => {
+        const dotColor = (d.getAttribute("data-color") || "").toLowerCase();
+        if (dotColor === noteColor) {
+          d.classList.add("active");
+          matched = true;
+        } else {
+          d.classList.remove("active");
+        }
+      });
+      if (!matched && dots.length > 0) {
+        dots[0].classList.add("active");
+      }
+    }
+
+    this.modalOverlay.style.display = "block";
+    this.noteModal.style.display = "flex";
+    this.noteModalTitleInput.focus();
+  }
+
+  handleNoteModalSubmit() {
+    const noteId = this.noteModalNoteId.value;
+    const unitSelect = this.noteModalUnitSelect;
+    const title = this.noteModalTitleInput.value.trim() || "My Study Point";
+    const content = this.noteModalContentTextarea.value.trim();
+    const activeColorDot = this.noteModalColorDots?.querySelector(".color-dot.active");
+    const color = activeColorDot ? activeColorDot.getAttribute("data-color") : "#8b5cf6";
+
+    if (!content) {
+      showToast("Please enter points or notes!", "info");
+      return;
+    }
+
+    const unitId = unitSelect.value;
+    const unitName = unitSelect.options[unitSelect.selectedIndex]?.text || "General Points";
+
+    notesManager.updateNote(noteId, {
+      title,
+      content,
+      unitId,
+      unitName,
+      color
+    });
+
+    this.closeAllModals();
+    showToast("Point updated successfully!", "success");
+  }
+
   // --- NOTEPAD CONTROLLER ---
 
   handleCreateNoteSubmit(form) {
@@ -443,13 +572,14 @@ class AppController {
     });
 
     // Filter Bar visibility
-    const showFilterBar = state.activeSection === "theory" || state.activeSection === "tricks";
+    const showFilterBar = state.activeSection === "theory" || state.activeSection === "tricks" || state.activeSection === "questions";
     this.filterBar.style.display = showFilterBar ? "flex" : "none";
 
     // Sections visibility
     this.unitsSection.style.display = state.activeSection === "units" ? "flex" : "none";
     this.theorySection.style.display = state.activeSection === "theory" ? "flex" : "none";
     this.tricksSection.style.display = state.activeSection === "tricks" ? "flex" : "none";
+    this.questionsSection.style.display = state.activeSection === "questions" ? "flex" : "none";
     this.notepadSection.style.display = state.activeSection === "notepad" ? "flex" : "none";
 
     // Render Sub-components
@@ -457,17 +587,32 @@ class AppController {
     this.renderUnitsSection(paperData);
     this.renderTheorySection(paperData);
     this.renderTricksSection(paperData);
+    this.renderQuestionsSection();
+    this.updateQuestionsBadge();
     this.renderNotepadSection();
     this.updateNotesBadge();
   }
 
   renderUnitDropdownOptions(paperData) {
     const state = store.getState();
-    let optionsHtml = `<option value="all">All Units (1 to 10)</option>`;
+    const isQuestions = state.activeSection === "questions";
+
+    let allLabel = "All Units (1 to 10)";
+    if (isQuestions) {
+      const totalQ = questionsManager.getQuestions(state.activePaper, "all").length;
+      allLabel = `All Units (${totalQ})`;
+    }
+
+    let optionsHtml = `<option value="all">${allLabel}</option>`;
 
     paperData.units.forEach(u => {
       const selected = state.selectedUnitId === u.id ? "selected" : "";
-      optionsHtml += `<option value="${u.id}" ${selected}>Unit ${u.unitNumber}: ${escapeHtml(u.name)}</option>`;
+      let unitLabel = `Unit ${u.unitNumber}: ${escapeHtml(u.name)}`;
+      if (isQuestions) {
+        const count = questionsManager.getUnitQuestionCount(state.activePaper, u.id);
+        unitLabel = `Unit ${u.unitNumber}: ${escapeHtml(u.name)} (${count})`;
+      }
+      optionsHtml += `<option value="${u.id}" ${selected}>${unitLabel}</option>`;
     });
 
     this.unitSelectDropdown.innerHTML = optionsHtml;
@@ -492,6 +637,7 @@ class AppController {
     paperData.units.forEach(u => {
       const theoryCount = u.theoryNotes ? u.theoryNotes.length : 0;
       const tricksCount = u.shortTricks ? u.shortTricks.length : 0;
+      const questionsCount = questionsManager.getUnitQuestionCount(state.activePaper, u.id);
 
       html += `
         <div class="unit-card">
@@ -508,6 +654,9 @@ class AppController {
             </button>
             <button class="unit-action-btn btn-go-tricks" data-unit-id="${u.id}">
               💡 Tricks (${tricksCount})
+            </button>
+            <button class="unit-action-btn btn-go-questions" data-unit-id="${u.id}">
+              🎯 PYQs (${questionsCount})
             </button>
           </div>
         </div>
@@ -530,6 +679,14 @@ class AppController {
         const unitId = btn.getAttribute("data-unit-id");
         store.setSelectedUnitId(unitId);
         store.setActiveSection("tricks");
+      });
+    });
+
+    this.unitsListContainer.querySelectorAll(".btn-go-questions").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const unitId = btn.getAttribute("data-unit-id");
+        store.setSelectedUnitId(unitId);
+        store.setActiveSection("questions");
       });
     });
   }
@@ -776,7 +933,14 @@ class AppController {
         <div class="saved-point-card" style="border-left: 3.5px solid ${n.color || 'var(--accent-current)'};">
           <div class="saved-point-header">
             <span class="saved-point-unit">${escapeHtml(n.unitName)}</span>
-            <button class="btn-delete-point" data-id="${n.id}" title="Delete Point">🗑️</button>
+            <div class="saved-point-actions">
+              <button class="card-btn-action edit btn-edit-point" data-id="${n.id}" title="Edit Point">
+                ✏️ Edit
+              </button>
+              <button class="card-btn-action delete btn-delete-point" data-id="${n.id}" title="Delete Point">
+                🗑️
+              </button>
+            </div>
           </div>
           <h4 class="saved-point-title">${escapeHtml(n.title)}</h4>
           <div class="saved-point-body">${escapeHtml(n.content)}</div>
@@ -786,6 +950,14 @@ class AppController {
     });
 
     this.userNotesGrid.innerHTML = html;
+
+    // Edit buttons
+    this.userNotesGrid.querySelectorAll(".btn-edit-point").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-id");
+        this.openEditNoteModal(id);
+      });
+    });
 
     // Delete buttons
     this.userNotesGrid.querySelectorAll(".btn-delete-point").forEach(btn => {
@@ -804,6 +976,237 @@ class AppController {
     const count = notesManager.getNotesByPaper(state.activePaper).length;
     if (this.notesCountBadge) {
       this.notesCountBadge.textContent = `${count} Points`;
+    }
+  }
+
+  // --- QUESTIONS (PYQ) CONTROLLER ---
+
+  renderQuestionsSection() {
+    if (!this.questionsSection || !this.questionsCardsContainer) return;
+
+    const state = store.getState();
+    const isP1 = state.activePaper === "paper1";
+    if (this.questionsSectionTitle) {
+      this.questionsSectionTitle.textContent = isP1
+        ? "Unit-wise PYQs (Paper 1)"
+        : "Unit-wise PYQs (Paper 2 CS)";
+    }
+
+    const questions = questionsManager.getQuestions(
+      state.activePaper,
+      state.selectedUnitId,
+      state.searchQuery
+    );
+
+    const totalCount = questions.length;
+    if (this.questionsCountBadge) {
+      this.questionsCountBadge.textContent = `(${totalCount} Questions)`;
+    }
+
+    // Update Stats Bar
+    const stats = questionsManager.getStats(state.activePaper, state.selectedUnitId);
+    if (this.pyqAttemptedPill) {
+      this.pyqAttemptedPill.textContent = `📝 Attempted: ${stats.attempted}/${stats.total}`;
+    }
+    if (this.pyqScorePill) {
+      this.pyqScorePill.textContent = `✓ Score: ${stats.correct}`;
+    }
+    if (this.pyqAccuracyPill) {
+      this.pyqAccuracyPill.textContent = `🎯 Accuracy: ${stats.accuracy}%`;
+    }
+
+    if (questions.length === 0) {
+      this.questionsCardsContainer.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">🎯</div>
+          <p>No questions found matching your filter or search.</p>
+          <p style="font-size: 0.8rem; color: var(--text-muted);">Try selecting 'All Units' from the filter dropdown or clearing your search keywords.</p>
+        </div>
+      `;
+      return;
+    }
+
+    // Pagination slice for smooth performance
+    const limit = this.questionsDisplayLimit || 15;
+    const visibleQuestions = questions.slice(0, limit);
+
+    let html = "";
+    visibleQuestions.forEach((q, idx) => {
+      const userAns = questionsManager.getAnswer(q.id);
+      const isAnswered = !!userAns;
+      const isDismissed = questionsManager.isDismissed(q.id);
+      const isCorrect = userAns ? userAns.isCorrect : false;
+      const selectedOption = userAns ? userAns.selectedOption : null;
+
+      html += `
+        <div class="question-card" id="q_card_${q.id}" style="${isAnswered ? (isCorrect ? 'border-left-color: #10b981;' : 'border-left-color: #ef4444;') : ''}">
+          <div class="question-card-header">
+            <div class="question-tags">
+              <span class="question-unit-tag">Unit ${q.unitNumber}: ${escapeHtml(q.unitName)}</span>
+              <span class="question-exam-tag">${escapeHtml(q.examSource)}</span>
+            </div>
+            ${isAnswered ? `<button class="btn-reset-question" data-qid="${q.id}" title="Re-attempt this question">↺ Re-try</button>` : ''}
+          </div>
+
+          <div class="question-statement">
+            <span style="color: var(--accent-current); margin-right: 0.3rem;">Q${idx + 1}.</span>
+            ${escapeHtml(q.question)}
+          </div>
+
+          <div class="question-options-list">
+      `;
+
+      q.options.forEach(opt => {
+        const isSelected = selectedOption === opt.id;
+        const isThisCorrect = q.correctOption === opt.id;
+        let rowClass = "option-row";
+        let statusBadge = "";
+
+        if (isAnswered) {
+          rowClass += " disabled";
+          if (isSelected) {
+            if (isCorrect) {
+              rowClass += " correct-choice";
+              statusBadge = `<span class="option-result-icon">✓ Correct!</span>`;
+            } else {
+              rowClass += " wrong-choice";
+              statusBadge = `<span class="option-result-icon">✗ Your Choice</span>`;
+            }
+          } else if (isThisCorrect && !isCorrect) {
+            rowClass += " reveal-correct";
+            statusBadge = `<span class="option-result-icon">✓ Correct Answer</span>`;
+          }
+        }
+
+        html += `
+          <label class="${rowClass}" data-qid="${q.id}" data-opt="${opt.id}">
+            <input type="radio" name="radio_${q.id}" value="${opt.id}" ${isSelected ? "checked" : ""} ${isAnswered ? "disabled" : ""}>
+            <span class="option-letter-badge">${opt.id}</span>
+            <span class="option-text">${escapeHtml(opt.text)}</span>
+            ${statusBadge}
+          </label>
+        `;
+      });
+
+      html += `</div>`;
+
+      // If answered, provide simple short explanation of each option
+      if (isAnswered) {
+        html += `
+          <div class="option-breakdown-card">
+            <div class="breakdown-header">
+              <span class="breakdown-title">
+                <span>💡</span>
+                <span>${isCorrect ? "Correct! Detailed Option Breakdown:" : "Incorrect! Simple Explanation of Each Option:"}</span>
+              </span>
+            </div>
+
+            <div class="breakdown-list">
+        `;
+
+        Object.keys(q.optionExplanations || {}).forEach(optKey => {
+          const isRight = optKey === q.correctOption;
+          const expText = q.optionExplanations[optKey];
+          html += `
+            <div class="breakdown-item ${isRight ? 'is-correct-exp' : ''}">
+              <span class="breakdown-badge">Option ${optKey}</span>
+              <span class="breakdown-text">${escapeHtml(expText)}</span>
+            </div>
+          `;
+        });
+
+        html += `
+            </div>
+            ${q.summaryExplanation ? `
+              <div class="breakdown-summary">
+                <strong>📌 Key Takeaway:</strong> ${escapeHtml(q.summaryExplanation)}
+              </div>
+            ` : ''}
+
+            ${!isDismissed ? `
+              <div class="next-question-action-bar">
+                <button class="btn-next-question" data-qid="${q.id}" type="button">
+                  Next Question ➡️
+                </button>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }
+
+      html += `</div>`;
+    });
+
+    // If more questions exist beyond the limit, show Load More button
+    if (totalCount > visibleQuestions.length) {
+      html += `
+        <div class="load-more-container" style="display: flex; justify-content: center; margin: 1.25rem 0;">
+          <button id="btnLoadMoreQuestions" class="btn-load-more" type="button" style="background: var(--bg-card); border: 1.5px solid var(--accent-current); color: var(--accent-current); font-weight: 800; font-size: 0.88rem; padding: 0.75rem 1.6rem; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+            📥 Load More Questions (Showing ${visibleQuestions.length} of ${totalCount})
+          </button>
+        </div>
+      `;
+    }
+
+    this.questionsCardsContainer.innerHTML = html;
+
+    // Attach Option Click listeners (for instant evaluation & explanation)
+    this.questionsCardsContainer.querySelectorAll(".option-row:not(.disabled)").forEach(row => {
+      row.addEventListener("click", (e) => {
+        const qId = row.getAttribute("data-qid");
+        const optId = row.getAttribute("data-opt");
+        const radio = row.querySelector("input[type='radio']");
+        if (radio) radio.checked = true;
+
+        const res = questionsManager.submitAnswer(qId, optId);
+        if (res) {
+          if (res.isCorrect) {
+            showToast("✓ Correct! Review explanation, then tap 'Next Question ➡️'", "success");
+          } else {
+            showToast(`✗ Incorrect. Option ${res.correctOption} is correct. Review explanation, then tap 'Next Question ➡️'`, "info");
+          }
+        }
+      });
+    });
+
+    // Attach Next Question listeners (moves solved question to bottom)
+    this.questionsCardsContainer.querySelectorAll(".btn-next-question").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const qId = btn.getAttribute("data-qid");
+        questionsManager.sendToBottom(qId);
+        showToast("Question moved to bottom! Ready for next.", "info");
+      });
+    });
+
+    // Attach Re-attempt listeners
+    this.questionsCardsContainer.querySelectorAll(".btn-reset-question").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const qId = btn.getAttribute("data-qid");
+        questionsManager.resetQuestion(qId);
+        showToast("Question reset! Moved back to top of queue.", "info");
+      });
+    });
+
+    // Attach Load More listener
+    const btnLoadMore = this.questionsCardsContainer.querySelector("#btnLoadMoreQuestions");
+    if (btnLoadMore) {
+      btnLoadMore.addEventListener("click", () => {
+        this.questionsDisplayLimit = (this.questionsDisplayLimit || 15) + 15;
+        this.renderQuestionsSection();
+      });
+    }
+  }
+
+  updateQuestionsBadge() {
+    const state = store.getState();
+    const totalInPaper = questionsManager.getQuestions(state.activePaper, "all").length;
+    const currentFilterCount = questionsManager.getQuestions(state.activePaper, state.selectedUnitId, state.searchQuery).length;
+
+    if (this.tabQuestionsCountBadge) {
+      this.tabQuestionsCountBadge.textContent = `(${totalInPaper})`;
+    }
+    if (this.questionsCountBadge) {
+      this.questionsCountBadge.textContent = `(${currentFilterCount} Questions)`;
     }
   }
 }
