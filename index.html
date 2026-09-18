@@ -15,102 +15,75 @@
 <body class="paper-1-theme">
   <div class="app-wrapper">
     <header class="app-header">
-      <!-- Sticky Navigation Area (Sticks to top with compact dropdown toggle while scrolling) -->
-      <div id="stickyNavArea" class="sticky-nav-area">
-        <!-- Compact Dropdown Toggle Bar (Active while scrolling) -->
-        <div id="stickyHeaderToggleBar" class="sticky-header-toggle-bar">
-          <button id="stickyHeaderDropdownBtn" class="sticky-header-dropdown-btn" type="button" aria-expanded="false"
-            title="Click to view header & navigation menu">
-            <div class="sticky-toggle-left">
-              <span class="sticky-brand-badge">📚</span>
-              <span id="stickyHeaderSummaryText" class="sticky-header-summary-text">Notes World • Paper 1</span>
-            </div>
-            <div class="sticky-toggle-right">
-              <span id="stickyActiveSectionBadge" class="sticky-active-badge">Units</span>
-              <span class="sticky-dropdown-arrow-icon">▼</span>
-            </div>
+      <!-- Row 1: P 1/2 indicator, (Section) badge, Brand title, Sync button (Flaticon 1069890), Theme toggle -->
+      <div class="header-row-top">
+        <div class="header-top-left">
+          <button id="headerPaperBadge" class="brand-p-badge" type="button" title="Click to toggle Paper 1 / Paper 2">P 1</button>
+          <span id="headerSectionBadge" class="brand-section-badge">(Units)</span>
+          <span class="brand-title-text">Notes World</span>
+        </div>
+        <div class="header-top-right">
+          <button id="cloudSyncBtn" class="cloud-sync-btn" type="button" aria-label="Sync Cloud Data"
+            title="Sync across devices">
+            <svg class="cloud-sync-svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 17.5H7a4.5 4.5 0 0 1-.8-8.93A5.5 5.5 0 0 1 17 8.5a4.5 4.5 0 0 1 2 9Z" />
+              <path d="M9.8 12.8a2.5 2.5 0 0 1 4.4-1.2l.8-.8" />
+              <polyline points="15 10.8 15 13 12.8 13" />
+              <path d="M14.2 14.8a2.5 2.5 0 0 1-4.4 1.2l-.8.8" />
+              <polyline points="9 16.8 9 14.6 11.2 14.6" />
+            </svg>
+            <span id="syncStatusText" class="sync-status-text">Sync</span>
           </button>
-          <div class="sticky-header-actions">
-            <button id="stickyCloudSyncBtn" class="sticky-sync-btn" type="button" aria-label="Sync Cloud Data"
-              title="Sync across devices">
-              <span class="sync-icon">🔄</span>
-            </button>
-            <button id="stickyThemeToggleBtn" class="sticky-theme-btn" type="button" aria-label="Toggle Dark or Light Mode"
-              title="Toggle Theme">
-              <span id="stickyThemeIcon">🌙</span>
-            </button>
-          </div>
+          <button id="themeToggleBtn" class="theme-toggle-btn" type="button" aria-label="Toggle Dark or Light Mode"
+            title="Toggle Theme">
+            <span id="themeIcon">🌙</span>
+          </button>
         </div>
+      </div>
 
-        <!-- Collapsible Top Header Section (Drops down while scrolling) -->
-        <div id="headerCollapsibleSection" class="header-collapsible-section">
-          <!-- 1. Header Top: Brand on left, Sync button with Theme toggle on right -->
-          <div class="header-top">
-            <div class="brand-title">
-              <span class="brand-logo-badge" aria-label="Books Icon">📚</span>
-              <div class="brand-name-group">
-                <span class="brand-title-text">Notes World</span>
-                <span class="brand-subtitle-badge">UGC NET • SET</span>
-              </div>
-            </div>
-            <div class="header-actions">
-              <button id="cloudSyncBtn" class="cloud-sync-btn" type="button" aria-label="Sync Cloud Data"
-                title="Sync across devices">
-                <span class="sync-icon">🔄</span>
-                <span id="syncStatusText" class="sync-status-text">Sync</span>
-              </button>
-              <button id="themeToggleBtn" class="theme-toggle-btn" type="button" aria-label="Toggle Dark or Light Mode"
-                title="Toggle Theme">
-                <span id="themeIcon">🌙</span>
-              </button>
-            </div>
-          </div>
+      <!-- Row 2: Units , Theory , Tricks, Questions , Notepad -->
+      <nav class="nav-tabs-bar" aria-label="Section Navigation" role="tablist">
+        <button class="tab-btn active" data-section="units" type="button" role="tab">
+          <span class="tab-icon">📚</span>
+          <span>Units</span>
+        </button>
+        <button class="tab-btn" data-section="theory" type="button" role="tab">
+          <span class="tab-icon">📖</span>
+          <span>Theory</span>
+        </button>
+        <button class="tab-btn" data-section="tricks" type="button" role="tab">
+          <span class="tab-icon">💡</span>
+          <span>Tricks</span>
+        </button>
+        <button class="tab-btn" data-section="questions" type="button" role="tab">
+          <span class="tab-icon">🎯</span>
+          <span>Questions <span id="tabQuestionsCountBadge">(0)</span></span>
+        </button>
+        <button class="tab-btn" data-section="notepad" type="button" role="tab">
+          <span class="tab-icon">📝</span>
+          <span>Notepad</span>
+        </button>
+      </nav>
 
-          <!-- 2. Paper Switcher: Paper 1 vs Paper 2 -->
-          <nav class="paper-switcher" aria-label="Paper Selection">
-            <button id="btnPaper1" class="paper-tab-btn active" type="button">
-              Paper 1
-            </button>
-            <button id="btnPaper2" class="paper-tab-btn" type="button">
-              Paper 2
-            </button>
-          </nav>
+      <!-- Row 3: Paper 1 , paper 2 -->
+      <nav class="paper-switcher" aria-label="Paper Selection">
+        <button id="btnPaper1" class="paper-tab-btn active" type="button">
+          Paper 1
+        </button>
+        <button id="btnPaper2" class="paper-tab-btn" type="button">
+          Paper 2
+        </button>
+      </nav>
 
-          <!-- 3. 5 Essential Section Tabs: Units, Theory, Tricks, Questions, Notepad -->
-          <nav class="nav-tabs-bar" aria-label="Section Navigation" role="tablist">
-            <button class="tab-btn active" data-section="units" type="button" role="tab">
-              <span class="tab-icon">📚</span>
-              <span>Units</span>
-            </button>
-            <button class="tab-btn" data-section="theory" type="button" role="tab">
-              <span class="tab-icon">📖</span>
-              <span>Theory</span>
-            </button>
-            <button class="tab-btn" data-section="tricks" type="button" role="tab">
-              <span class="tab-icon">💡</span>
-              <span>Tricks</span>
-            </button>
-            <button class="tab-btn" data-section="questions" type="button" role="tab">
-              <span class="tab-icon">🎯</span>
-              <span>Questions <span id="tabQuestionsCountBadge">(0)</span></span>
-            </button>
-            <button class="tab-btn" data-section="notepad" type="button" role="tab">
-              <span class="tab-icon">📝</span>
-              <span>Notepad</span>
-            </button>
-          </nav>
-        </div>
-
-        <!-- 4. Unit Filter & Search (Visible on Theory & Tricks tabs) -->
-        <div id="filterBar" class="filter-bar" style="display: none;">
-          <div class="filter-row">
-            <select id="unitSelectDropdown" class="unit-select-box" aria-label="Filter by Unit">
-              <!-- Dynamically populated -->
-            </select>
-          </div>
+      <!-- Row 4: units Search -->
+      <div id="filterBar" class="filter-bar">
+        <div class="filter-row">
+          <select id="unitSelectDropdown" class="unit-select-box" aria-label="Filter by Unit">
+            <!-- Dynamically populated -->
+          </select>
           <div class="search-box-wrap">
-            <span>🔍</span>
-            <input type="search" id="globalSearchInput" placeholder="Search theory or tricks..." autocomplete="off">
+            <span class="search-icon">🔍</span>
+            <input type="search" id="globalSearchInput" placeholder="Search..." autocomplete="off">
           </div>
         </div>
       </div>
