@@ -7,9 +7,9 @@
   <title>Notes World</title>
   <meta name="description"
     content="Notes World: Ultra-simple, mobile-first study portal for UGC NET and MH-SET. Essential Units, Theory bullet points, Short Tricks, and personal Notepad for Paper 1 and Paper 2 Computer Science.">
-  <link rel="stylesheet" href="css/theme.css">
-  <link rel="stylesheet" href="css/layout.css">
-  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/theme.css?v=2.1">
+  <link rel="stylesheet" href="css/layout.css?v=2.1">
+  <link rel="stylesheet" href="css/components.css?v=2.1">
 </head>
 
 <body class="paper-1-theme">
@@ -19,7 +19,8 @@
       <div id="stickyNavArea" class="sticky-nav-area">
         <!-- Compact Dropdown Toggle Bar (Active while scrolling) -->
         <div id="stickyHeaderToggleBar" class="sticky-header-toggle-bar">
-          <button id="stickyHeaderDropdownBtn" class="sticky-header-dropdown-btn" type="button" aria-expanded="false" title="Click to view header & navigation menu">
+          <button id="stickyHeaderDropdownBtn" class="sticky-header-dropdown-btn" type="button" aria-expanded="false"
+            title="Click to view header & navigation menu">
             <div class="sticky-toggle-left">
               <span class="sticky-brand-badge">📚</span>
               <span id="stickyHeaderSummaryText" class="sticky-header-summary-text">Notes World • Paper 1</span>
@@ -40,7 +41,8 @@
               <span>Notes World</span>
             </div>
             <div class="header-actions">
-              <button id="cloudSyncBtn" class="cloud-sync-btn" type="button" aria-label="Sync Cloud Data" title="Sync across devices">
+              <button id="cloudSyncBtn" class="cloud-sync-btn" type="button" aria-label="Sync Cloud Data"
+                title="Sync across devices">
                 <span class="sync-icon">🔄</span>
                 <span id="syncStatusText" class="sync-status-text">Sync</span>
               </button>
@@ -185,7 +187,8 @@
             <span class="pyq-stat-pill correct" id="pyqScorePill">✓ Score: 0</span>
             <span class="pyq-stat-pill accuracy" id="pyqAccuracyPill">🎯 Accuracy: 0%</span>
           </div>
-          <button id="btnResetAllPyqs" class="btn-reset-pyqs" type="button" title="Reset all answered questions in this paper">
+          <button id="btnResetAllPyqs" class="btn-reset-pyqs" type="button"
+            title="Reset all answered questions in this paper">
             ↺ Reset Answers
           </button>
         </div>
@@ -270,7 +273,7 @@
         <div class="modal-field">
           <label for="theoryModalPoints">Theory:</label>
           <textarea id="theoryModalPoints" class="modal-textarea" rows="6"
-            placeholder="• Point 1&#10;• Point 2&#10;• Point 3" required></textarea>
+            placeholder="- Point 1&#10;- Point 2&#10;- Point 3" required></textarea>
         </div>
         <div class="modal-actions">
           <button type="button" id="btnCancelTheoryModal" class="btn-modal-cancel">Cancel</button>
@@ -299,7 +302,8 @@
         </div>
         <div class="modal-field">
           <label for="trickModalMnemonic">Mnemonic / Shortcut Rule:</label>
-          <textarea id="trickModalMnemonic" class="modal-textarea" rows="2" placeholder="Ramu caca please samosa" required></textarea>
+          <textarea id="trickModalMnemonic" class="modal-textarea" rows="2" placeholder="Ramu caca please samosa"
+            required></textarea>
         </div>
         <div class="modal-field">
           <label for="trickModalExplanation">Explanation:</label>
@@ -337,8 +341,8 @@
         </div>
         <div class="modal-field">
           <label for="noteModalContentTextarea">Point Notes:</label>
-          <textarea id="noteModalContentTextarea" class="modal-textarea" rows="6"
-            placeholder="Write your notes here..." required></textarea>
+          <textarea id="noteModalContentTextarea" class="modal-textarea" rows="6" placeholder="Write your notes here..."
+            required></textarea>
         </div>
         <div class="modal-field">
           <label>Card Accent Color:</label>
@@ -361,7 +365,7 @@
     <div id="toastContainer" class="toast-container" aria-live="polite"></div>
   </div>
 
-  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/app.js?v=2.1"></script>
 </body>
 
 </html>
