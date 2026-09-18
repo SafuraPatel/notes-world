@@ -26,9 +26,10 @@
   --border: rgba(255, 255, 255, 0.1);
   --border-focus: rgba(139, 92, 246, 0.5);
 
-  --radius-sm: 6px;
+  --radius-sm: 8px;
   --radius-md: 10px;
-  --radius-lg: 14px;
+  --radius-lg: 10px;
+  --radius-box: 10px;
   --radius-full: 9999px;
 
   --font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
