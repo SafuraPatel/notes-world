@@ -77,7 +77,9 @@ class AppController {
   }
 
   initElements() {
-    // Header controls
+    // Header controls (4-Row Direct Header)
+    this.headerPaperBadge = document.getElementById("headerPaperBadge");
+    this.headerSectionBadge = document.getElementById("headerSectionBadge");
     this.btnPaper1 = document.getElementById("btnPaper1");
     this.btnPaper2 = document.getElementById("btnPaper2");
     this.cloudSyncBtn = document.getElementById("cloudSyncBtn");
