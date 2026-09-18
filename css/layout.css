@@ -69,72 +69,105 @@
 }
 
 .brand-title {
-  display: flex;
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.42rem;
   text-decoration: none;
-  cursor: default;
+  cursor: pointer;
+  user-select: none;
+  padding: 0.12rem 0.25rem;
+  border-radius: 10px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Ambient Smooth Silk Aura Glow Behind Notes World */
+.brand-title::before {
+  content: "";
+  position: absolute;
+  inset: -1px -2px;
+  background: radial-gradient(ellipse at center, rgba(129, 140, 248, 0.28) 0%, rgba(192, 132, 252, 0.16) 45%, transparent 75%);
+  border-radius: 12px;
+  filter: blur(8px);
+  pointer-events: none;
+  opacity: 0.75;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  z-index: 0;
+}
+
+.paper-2-theme .brand-title::before {
+  background: radial-gradient(ellipse at center, rgba(16, 185, 129, 0.3) 0%, rgba(6, 182, 212, 0.16) 45%, transparent 75%);
+}
+
+.brand-title:hover::before {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+[data-theme="light"] .brand-title::before {
+  background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.14) 0%, rgba(217, 70, 239, 0.08) 45%, transparent 75%);
+}
+
+[data-theme="light"].paper-2-theme .brand-title::before,
+[data-theme="light"] .paper-2-theme .brand-title::before {
+  background: radial-gradient(ellipse at center, rgba(5, 150, 105, 0.14) 0%, rgba(2, 132, 199, 0.08) 45%, transparent 75%);
 }
 
 .brand-logo-badge {
+  position: relative;
+  z-index: 1;
   font-size: 1.25rem;
   line-height: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  filter: drop-shadow(0 2px 6px rgba(129, 140, 248, 0.4));
-  transition: transform 0.25s ease;
+  filter: drop-shadow(0 2px 6px rgba(129, 140, 248, 0.45));
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .brand-title:hover .brand-logo-badge {
-  transform: rotate(-8deg) scale(1.1);
+  transform: rotate(-10deg) scale(1.15);
 }
 
-/* Attractive Vibrant Glowing Aurora Color for Notes World */
+/* Very Attractive and Ultra-Smooth Satin Gradient for Notes World */
 .brand-title-text {
+  position: relative;
+  z-index: 1;
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 1.22rem;
   font-weight: 800;
-  letter-spacing: -0.035em;
-  background: linear-gradient(135deg, #38bdf8 0%, #818cf8 25%, #c084fc 50%, #f472b6 75%, #38bdf8 100%);
-  background-size: 200% auto;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #60a5fa 0%, #818cf8 32%, #c084fc 65%, #f472b6 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 16px rgba(167, 139, 250, 0.6)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+  filter: drop-shadow(0 2px 6px rgba(99, 102, 241, 0.35));
   white-space: nowrap;
   line-height: 1.2;
-  animation: brandAuroraFlow 7s ease infinite alternate;
+  transition: filter 0.3s ease;
 }
 
-@keyframes brandAuroraFlow {
-  0% {
-    background-position: 0% 50%;
-  }
-  100% {
-    background-position: 100% 50%;
-  }
+.brand-title:hover .brand-title-text {
+  filter: drop-shadow(0 2px 10px rgba(129, 140, 248, 0.55));
 }
 
 .paper-2-theme .brand-title-text {
-  background: linear-gradient(135deg, #34d399 0%, #10b981 25%, #06b6d4 50%, #38bdf8 75%, #34d399 100%);
-  background-size: 200% auto;
-  filter: drop-shadow(0 0 16px rgba(16, 185, 129, 0.6)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
-  animation: brandAuroraFlow 7s ease infinite alternate;
+  background: linear-gradient(135deg, #34d399 0%, #10b981 35%, #06b6d4 70%, #38bdf8 100%);
+  filter: drop-shadow(0 2px 6px rgba(16, 185, 129, 0.35));
+}
+
+.paper-2-theme .brand-title:hover .brand-title-text {
+  filter: drop-shadow(0 2px 10px rgba(16, 185, 129, 0.55));
 }
 
 [data-theme="light"] .brand-title-text {
-  background: linear-gradient(135deg, #4338ca 0%, #6366f1 25%, #8b5cf6 50%, #d946ef 75%, #2563eb 100%);
-  background-size: 200% auto;
-  filter: drop-shadow(0 2px 10px rgba(99, 102, 241, 0.35));
-  animation: brandAuroraFlow 7s ease infinite alternate;
+  background: linear-gradient(135deg, #4338ca 0%, #6366f1 35%, #7c3aed 70%, #db2777 100%);
+  filter: drop-shadow(0 1px 3px rgba(99, 102, 241, 0.25));
 }
 
 [data-theme="light"].paper-2-theme .brand-title-text,
 [data-theme="light"] .paper-2-theme .brand-title-text {
-  background: linear-gradient(135deg, #065f46 0%, #059669 25%, #0d9488 50%, #0284c7 75%, #0f766e 100%);
-  background-size: 200% auto;
-  filter: drop-shadow(0 2px 10px rgba(5, 150, 105, 0.35));
-  animation: brandAuroraFlow 7s ease infinite alternate;
+  background: linear-gradient(135deg, #065f46 0%, #059669 35%, #0284c7 70%, #0f766e 100%);
+  filter: drop-shadow(0 1px 3px rgba(5, 150, 105, 0.25));
 }
 
 /* Paper Switcher Pill (P1 / P2) */
