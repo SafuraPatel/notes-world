@@ -469,15 +469,16 @@ class AppController {
   }
 
   async triggerManualSync() {
-    if (!this.cloudSyncBtn) return;
-    this.cloudSyncBtn.classList.add("syncing");
+    if (this.cloudSyncBtn) this.cloudSyncBtn.classList.add("syncing");
+    if (this.stickyCloudSyncBtn) this.stickyCloudSyncBtn.classList.add("syncing");
     if (this.syncStatusText) this.syncStatusText.textContent = "Syncing...";
     try {
       const [notesUpdated, dataUpdated] = await Promise.all([
         notesManager.syncFromCloud(),
         dataManager.syncFromCloud()
       ]);
-      this.cloudSyncBtn.classList.remove("syncing");
+      if (this.cloudSyncBtn) this.cloudSyncBtn.classList.remove("syncing");
+      if (this.stickyCloudSyncBtn) this.stickyCloudSyncBtn.classList.remove("syncing");
       if (this.syncStatusText) {
         this.syncStatusText.textContent = "Synced ✓";
         setTimeout(() => {
@@ -486,7 +487,8 @@ class AppController {
       }
       showToast(notesUpdated || dataUpdated ? "Latest updates synced from cloud!" : "All notes and topics up to date!", "success");
     } catch (e) {
-      this.cloudSyncBtn.classList.remove("syncing");
+      if (this.cloudSyncBtn) this.cloudSyncBtn.classList.remove("syncing");
+      if (this.stickyCloudSyncBtn) this.stickyCloudSyncBtn.classList.remove("syncing");
       if (this.syncStatusText) {
         this.syncStatusText.textContent = "Offline";
         setTimeout(() => {
