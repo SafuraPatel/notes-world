@@ -323,9 +323,17 @@ class AppController {
       });
     }
 
-    // Cloud Sync Button
+    // Cloud Sync Button (Main Header)
     if (this.cloudSyncBtn) {
       this.cloudSyncBtn.addEventListener("click", () => {
+        this.triggerManualSync();
+      });
+    }
+
+    // Cloud Sync Button (Sticky Bar)
+    if (this.stickyCloudSyncBtn) {
+      this.stickyCloudSyncBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
         this.triggerManualSync();
       });
     }
