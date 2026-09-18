@@ -84,6 +84,8 @@ class AppController {
     this.syncStatusText = document.getElementById("syncStatusText");
     this.themeToggleBtn = document.getElementById("themeToggleBtn");
     this.themeIcon = document.getElementById("themeIcon");
+    this.stickyThemeToggleBtn = document.getElementById("stickyThemeToggleBtn");
+    this.stickyThemeIcon = document.getElementById("stickyThemeIcon");
     this.navTabBtns = document.querySelectorAll(".tab-btn");
 
     // Filter bar
