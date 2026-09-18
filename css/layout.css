@@ -90,33 +90,51 @@
   transform: rotate(-8deg) scale(1.1);
 }
 
-/* Attractive Vibrant Color for Notes World */
+/* Attractive Vibrant Glowing Aurora Color for Notes World */
 .brand-title-text {
-  font-size: 1.15rem;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 1.22rem;
   font-weight: 800;
-  letter-spacing: -0.025em;
-  background: linear-gradient(135deg, #38bdf8 0%, #818cf8 35%, #c084fc 70%, #f472b6 100%);
+  letter-spacing: -0.035em;
+  background: linear-gradient(135deg, #38bdf8 0%, #818cf8 25%, #c084fc 50%, #f472b6 75%, #38bdf8 100%);
+  background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 2px 10px rgba(129, 140, 248, 0.45));
+  filter: drop-shadow(0 0 16px rgba(167, 139, 250, 0.6)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
   white-space: nowrap;
   line-height: 1.2;
+  animation: brandAuroraFlow 7s ease infinite alternate;
+}
+
+@keyframes brandAuroraFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
 }
 
 .paper-2-theme .brand-title-text {
-  background: linear-gradient(135deg, #34d399 0%, #10b981 35%, #06b6d4 70%, #38bdf8 100%);
-  filter: drop-shadow(0 2px 10px rgba(16, 185, 129, 0.45));
+  background: linear-gradient(135deg, #34d399 0%, #10b981 25%, #06b6d4 50%, #38bdf8 75%, #34d399 100%);
+  background-size: 200% auto;
+  filter: drop-shadow(0 0 16px rgba(16, 185, 129, 0.6)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+  animation: brandAuroraFlow 7s ease infinite alternate;
 }
 
 [data-theme="light"] .brand-title-text {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 40%, #0284c7 75%, #059669 100%);
-  filter: drop-shadow(0 1px 4px rgba(79, 70, 229, 0.25));
+  background: linear-gradient(135deg, #4338ca 0%, #6366f1 25%, #8b5cf6 50%, #d946ef 75%, #2563eb 100%);
+  background-size: 200% auto;
+  filter: drop-shadow(0 2px 10px rgba(99, 102, 241, 0.35));
+  animation: brandAuroraFlow 7s ease infinite alternate;
 }
 
 [data-theme="light"].paper-2-theme .brand-title-text,
 [data-theme="light"] .paper-2-theme .brand-title-text {
-  background: linear-gradient(135deg, #047857 0%, #059669 40%, #0284c7 75%, #0f766e 100%);
-  filter: drop-shadow(0 1px 4px rgba(5, 150, 105, 0.25));
+  background: linear-gradient(135deg, #065f46 0%, #059669 25%, #0d9488 50%, #0284c7 75%, #0f766e 100%);
+  background-size: 200% auto;
+  filter: drop-shadow(0 2px 10px rgba(5, 150, 105, 0.35));
+  animation: brandAuroraFlow 7s ease infinite alternate;
 }
 
 /* Paper Switcher Pill (P1 / P2) */
@@ -426,22 +444,29 @@
   border-bottom-color: var(--accent-current);
 }
 
-/* Small screen / mobile (< 640px): show ONLY icon */
+/* Small screen / mobile (<= 640px): show ONLY icon in sections bar */
 @media (max-width: 640px) {
   .nav-tabs-bar .tab-btn .tab-label {
     display: none !important;
   }
   .nav-tabs-bar .tab-btn {
-    padding: 0.52rem 0.2rem;
+    padding: 0.5rem 0.2rem;
+    min-height: 42px;
     justify-content: center;
+    align-items: center;
   }
   .nav-tabs-bar .tab-btn .tab-icon {
-    font-size: 1.25rem;
+    font-size: 1.3rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  /* Responsive layout for Row 1 on mobile */
+  /* Responsive layout for Header Control Bar on mobile */
   .header-main-bar {
-    gap: 0.4rem;
+    flex-wrap: wrap;
+    gap: 0.45rem;
   }
   .header-brand-paper-group {
     order: 1;
@@ -554,18 +579,8 @@
   }
 
   .paper-tab-btn {
-    font-size: 0.82rem;
-    padding: 0.45rem 0.25rem;
-  }
-
-  .tab-btn {
-    font-size: 0.72rem;
-    padding: 0.5rem 0.1rem;
-    gap: 0.15rem;
-  }
-
-  .tab-btn .tab-icon {
-    font-size: 0.95rem;
+    font-size: 0.8rem;
+    padding: 0.24rem 0.48rem;
   }
 
   .filter-bar {
