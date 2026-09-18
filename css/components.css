@@ -611,7 +611,7 @@
 .trick-card {
   background: linear-gradient(145deg, rgba(21, 28, 40, 0.95) 0%, rgba(15, 22, 33, 0.98) 100%);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 10px;
   padding: 1.15rem 1.25rem;
   display: flex;
   flex-direction: column;
@@ -652,7 +652,7 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 0.18rem 0.6rem;
-  border-radius: var(--radius-full);
+  border-radius: 10px;
   border: 1px solid;
   display: inline-block;
   margin-bottom: 0.35rem;
@@ -669,7 +669,7 @@
 
 /* Mnemonic Box & Understandable Visuals */
 .mnemonic-box {
-  border-radius: var(--radius-md);
+  border-radius: 10px;
   border: 1px solid;
   padding: 0.85rem 1rem;
   display: flex;
@@ -693,7 +693,7 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 0.28rem 0.75rem;
-  border-radius: var(--radius-full);
+  border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   display: inline-flex;
   align-items: center;
@@ -733,7 +733,7 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.3rem 0.65rem;
-  border-radius: var(--radius-sm);
+  border-radius: 10px;
   border: 1px solid;
   font-size: 0.8rem;
   font-weight: 600;
@@ -772,7 +772,7 @@
   justify-content: space-between;
   gap: 0.5rem;
   padding: 0.4rem 0.75rem;
-  border-radius: var(--radius-sm);
+  border-radius: 10px;
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.03);
   font-size: 0.8rem;
@@ -802,7 +802,7 @@
   background: rgba(245, 158, 11, 0.09);
   border: 1px solid rgba(245, 158, 11, 0.25);
   border-left: 3.5px solid #f59e0b;
-  border-radius: var(--radius-md);
+  border-radius: 10px;
   padding: 0.55rem 0.8rem;
   display: flex;
   align-items: flex-start;
