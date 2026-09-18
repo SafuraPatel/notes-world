@@ -56,8 +56,10 @@ function formatBulletText(rawText) {
 class AppController {
   constructor() {
     this.initElements();
+    this.initHistory();
     this.bindEvents();
     this.initTheme();
+    this.updateStickySummary();
     this.render();
 
     // Reactive store updates
@@ -88,6 +90,14 @@ class AppController {
     this.filterBar = document.getElementById("filterBar");
     this.unitSelectDropdown = document.getElementById("unitSelectDropdown");
     this.globalSearchInput = document.getElementById("globalSearchInput");
+
+    // Sticky Scroll Navigation elements
+    this.stickyNavArea = document.getElementById("stickyNavArea");
+    this.stickyHeaderToggleBar = document.getElementById("stickyHeaderToggleBar");
+    this.stickyHeaderDropdownBtn = document.getElementById("stickyHeaderDropdownBtn");
+    this.stickyHeaderSummaryText = document.getElementById("stickyHeaderSummaryText");
+    this.stickyActiveSectionBadge = document.getElementById("stickyActiveSectionBadge");
+    this.headerCollapsibleSection = document.getElementById("headerCollapsibleSection");
 
     // Main sections
     this.unitsSection = document.getElementById("unitsSection");
@@ -164,6 +174,104 @@ class AppController {
     this.btnCancelNoteModal = document.getElementById("btnCancelNoteModal");
   }
 
+  initHistory() {
+    const state = store.getState();
+    const initialSection = state.activeSection || "units";
+    const initialUnit = state.selectedUnitId || "all";
+    window.history.replaceState(
+      { section: initialSection, unitId: initialUnit, paper: state.activePaper },
+      "",
+      `#${initialSection}`
+    );
+
+    window.addEventListener("popstate", (event) => {
+      if (this._ignoreNextPopstate) {
+        this._ignoreNextPopstate = false;
+        return;
+      }
+
+      // 1. If any modal is open, close it on back
+      if (this.isAnyModalOpen()) {
+        this.closeAllModals(false);
+        return;
+      }
+
+      // 2. If valid history state exists, restore it
+      if (event.state && event.state.section) {
+        if (event.state.paper && event.state.paper !== store.getState().activePaper) {
+          store.setActivePaper(event.state.paper);
+        }
+        if (event.state.unitId !== undefined) {
+          store.setSelectedUnitId(event.state.unitId);
+        }
+        store.setActiveSection(event.state.section);
+      } else {
+        // 3. Fallback: If on any non-units page, return to home page (Units)
+        const currentSection = store.getState().activeSection;
+        if (currentSection !== "units") {
+          store.setSelectedUnitId("all");
+          store.setActiveSection("units");
+          window.history.replaceState({ section: "units", unitId: "all", paper: store.getState().activePaper }, "", "#units");
+        }
+      }
+    });
+  }
+
+  isAnyModalOpen() {
+    return (this.theoryModal && this.theoryModal.style.display === "flex") ||
+           (this.trickModal && this.trickModal.style.display === "flex") ||
+           (this.noteModal && this.noteModal.style.display === "flex");
+  }
+
+  pushModalState(modalName) {
+    window.history.pushState({ isModal: true, modalName }, "", window.location.hash);
+  }
+
+  navigateToSection(section, unitId = null, pushHistory = true) {
+    this.closeStickyDropdown();
+    const state = store.getState();
+    const targetUnitId = unitId !== null ? unitId : state.selectedUnitId;
+    if (pushHistory) {
+      window.history.pushState(
+        { section, unitId: targetUnitId, paper: state.activePaper },
+        "",
+        `#${section}`
+      );
+    }
+    if (unitId !== null) {
+      store.setSelectedUnitId(targetUnitId);
+    }
+    store.setActiveSection(section);
+    this.updateStickySummary();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  closeStickyDropdown() {
+    if (this.stickyNavArea) {
+      this.stickyNavArea.classList.remove("menu-open");
+    }
+    if (this.stickyHeaderDropdownBtn) {
+      this.stickyHeaderDropdownBtn.setAttribute("aria-expanded", "false");
+    }
+  }
+
+  updateStickySummary() {
+    if (!this.stickyHeaderSummaryText || !this.stickyActiveSectionBadge) return;
+    const state = store.getState();
+    const isP1 = state.activePaper === "paper1";
+    const paperLabel = isP1 ? "Paper 1" : "Paper 2";
+    this.stickyHeaderSummaryText.textContent = `Notes World • ${paperLabel}`;
+
+    const sectionLabels = {
+      units: "Units",
+      theory: "Theory",
+      tricks: "Tricks",
+      questions: "Questions",
+      notepad: "Notepad"
+    };
+    this.stickyActiveSectionBadge.textContent = sectionLabels[state.activeSection] || state.activeSection;
+  }
+
   initTheme() {
     const theme = store.getState().theme;
     document.documentElement.setAttribute("data-theme", theme);
@@ -179,12 +287,16 @@ class AppController {
   bindEvents() {
     // Paper 1 switch
     this.btnPaper1.addEventListener("click", () => {
+      this.closeStickyDropdown();
       store.setActivePaper("paper1");
+      this.updateStickySummary();
     });
 
     // Paper 2 switch
     this.btnPaper2.addEventListener("click", () => {
+      this.closeStickyDropdown();
       store.setActivePaper("paper2");
+      this.updateStickySummary();
     });
 
     // Theme toggle
@@ -200,11 +312,18 @@ class AppController {
       });
     }
 
-    // Tab buttons (Units, Theory, Tricks, Notepad)
+    // Tab buttons (Units, Theory, Tricks, Questions, Notepad)
     this.navTabBtns.forEach(btn => {
       btn.addEventListener("click", () => {
         const section = btn.getAttribute("data-section");
-        store.setActiveSection(section);
+        this.navigateToSection(section, null, true);
+      });
+    });
+
+    // In-app "← Units" back to home buttons
+    document.querySelectorAll(".btn-back-to-home").forEach(btn => {
+      btn.addEventListener("click", () => {
+        this.navigateToSection("units", "all", true);
       });
     });
 
@@ -332,11 +451,16 @@ class AppController {
 
   // --- MODAL CONTROLLERS ---
 
-  closeAllModals() {
+  closeAllModals(triggerHistoryBack = true) {
     if (this.modalOverlay) this.modalOverlay.style.display = "none";
     if (this.theoryModal) this.theoryModal.style.display = "none";
     if (this.trickModal) this.trickModal.style.display = "none";
     if (this.noteModal) this.noteModal.style.display = "none";
+
+    if (triggerHistoryBack && window.history.state && window.history.state.isModal) {
+      this._ignoreNextPopstate = true;
+      window.history.back();
+    }
   }
 
   populateModalUnitOptions(selectElement, defaultUnitId) {
@@ -361,6 +485,7 @@ class AppController {
     this.theoryModalPoints.value = "";
     this.theoryModalUnitSelect.disabled = false;
 
+    this.pushModalState("addTheory");
     this.modalOverlay.style.display = "block";
     this.theoryModal.style.display = "flex";
     this.theoryModalTopicTitle.focus();
@@ -379,6 +504,7 @@ class AppController {
     this.theoryModalPoints.value = (topic.points || []).map(p => `• ${p.replace(/^[•\s]+/, "")}`).join("\n");
     this.theoryModalUnitSelect.disabled = true; // unit locked during edit
 
+    this.pushModalState("editTheory");
     this.modalOverlay.style.display = "block";
     this.theoryModal.style.display = "flex";
     this.theoryModalTopicTitle.focus();
@@ -423,6 +549,7 @@ class AppController {
     this.trickModalProTip.value = "";
     this.trickModalUnitSelect.disabled = false;
 
+    this.pushModalState("addTrick");
     this.modalOverlay.style.display = "block";
     this.trickModal.style.display = "flex";
     this.trickModalTitleInput.focus();
@@ -443,6 +570,7 @@ class AppController {
     this.trickModalProTip.value = trick.proTip || "";
     this.trickModalUnitSelect.disabled = true;
 
+    this.pushModalState("editTrick");
     this.modalOverlay.style.display = "block";
     this.trickModal.style.display = "flex";
     this.trickModalTitleInput.focus();
@@ -514,6 +642,7 @@ class AppController {
       }
     }
 
+    this.pushModalState("editNote");
     this.modalOverlay.style.display = "block";
     this.noteModal.style.display = "flex";
     this.noteModalTitleInput.focus();
@@ -589,6 +718,9 @@ class AppController {
 
     // Theme class
     document.body.className = isP1 ? "paper-1-theme" : "paper-2-theme";
+
+    // Update sticky summary bar text & badges
+    this.updateStickySummary();
 
     // Paper Switcher Active States
     if (isP1) {
@@ -718,24 +850,21 @@ class AppController {
     this.unitsListContainer.querySelectorAll(".btn-go-theory").forEach(btn => {
       btn.addEventListener("click", () => {
         const unitId = btn.getAttribute("data-unit-id");
-        store.setSelectedUnitId(unitId);
-        store.setActiveSection("theory");
+        this.navigateToSection("theory", unitId, true);
       });
     });
 
     this.unitsListContainer.querySelectorAll(".btn-go-tricks").forEach(btn => {
       btn.addEventListener("click", () => {
         const unitId = btn.getAttribute("data-unit-id");
-        store.setSelectedUnitId(unitId);
-        store.setActiveSection("tricks");
+        this.navigateToSection("tricks", unitId, true);
       });
     });
 
     this.unitsListContainer.querySelectorAll(".btn-go-questions").forEach(btn => {
       btn.addEventListener("click", () => {
         const unitId = btn.getAttribute("data-unit-id");
-        store.setSelectedUnitId(unitId);
-        store.setActiveSection("questions");
+        this.navigateToSection("questions", unitId, true);
       });
     });
   }
@@ -790,6 +919,9 @@ class AppController {
           <div class="theory-card-top">
             <span class="theory-unit-label">Unit ${item.unitNumber}: ${escapeHtml(item.unitName)}</span>
             <div class="card-action-btns">
+              <button class="card-btn-action btn-toggle-mindmap" data-topic-id="${item.id}" title="Toggle Exam Mind Map & Diagram">
+                🗺️ Mind Map
+              </button>
               <button class="card-btn-action edit btn-edit-theory" data-topic-id="${item.id}" title="Edit Topic">
                 ✏️ Edit
               </button>
@@ -809,11 +941,27 @@ class AppController {
               </li>
             `).join("")}
           </ul>
+
+          <div id="mindmap-${item.id}" class="theory-mindmap-container" style="display: none;">
+            ${this.renderMindMapHtml(item)}
+          </div>
         </div>
       `;
     });
 
     this.theoryCardsContainer.innerHTML = html;
+
+    // Attach Toggle Mind Map events
+    this.theoryCardsContainer.querySelectorAll(".btn-toggle-mindmap").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const topicId = btn.getAttribute("data-topic-id");
+        const mapContainer = document.getElementById(`mindmap-${topicId}`);
+        if (!mapContainer) return;
+        const isHidden = mapContainer.style.display === "none";
+        mapContainer.style.display = isHidden ? "flex" : "none";
+        btn.innerHTML = isHidden ? "✕ Close Map" : "🗺️ Mind Map";
+      });
+    });
 
     // Attach Edit and Delete events
     this.theoryCardsContainer.querySelectorAll(".btn-edit-theory").forEach(btn => {
@@ -832,6 +980,150 @@ class AppController {
         }
       });
     });
+  }
+
+  renderMindMapHtml(item) {
+    // 1. Explicit diagram object
+    if (item.diagram) {
+      if (item.diagram.type === "stack") {
+        return `
+          <div class="mindmap-top-bar">
+            <span class="mindmap-heading">📐 ${escapeHtml(item.diagram.title || item.title)}</span>
+            <span class="mindmap-badge">${escapeHtml(item.diagram.badge || "Layered Hierarchy")}</span>
+          </div>
+          <div class="diagram-stack-container">
+            ${item.diagram.layers.map(l => `
+              <div class="diagram-stack-layer" style="border-left: 4px solid ${l.accent || 'var(--accent-current)'};">
+                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                  <span class="diagram-layer-badge">${escapeHtml(l.badge || l.level)}</span>
+                  <span style="font-weight: 700;">${escapeHtml(l.title)}</span>
+                </div>
+                ${l.desc ? `<span class="diagram-layer-info">${escapeHtml(l.desc)}</span>` : ''}
+              </div>
+            `).join("")}
+          </div>
+        `;
+      }
+      if (item.diagram.type === "flow") {
+        return `
+          <div class="mindmap-top-bar">
+            <span class="mindmap-heading">🔄 ${escapeHtml(item.diagram.title || item.title)}</span>
+            <span class="mindmap-badge">Sequential Pipeline</span>
+          </div>
+          <div class="diagram-flow-steps">
+            ${item.diagram.steps.map((st, sIdx) => `
+              <div class="diagram-flow-step">
+                <span class="diagram-step-num">Step ${sIdx + 1}</span>
+                <span class="diagram-step-title">${escapeHtml(st.title)}</span>
+                ${st.desc ? `<span class="diagram-step-desc">${escapeHtml(st.desc)}</span>` : ''}
+              </div>
+              ${sIdx < item.diagram.steps.length - 1 ? '<span class="diagram-flow-arrow">➔</span>' : ''}
+            `).join("")}
+          </div>
+        `;
+      }
+      if (item.diagram.type === "matrix") {
+        return `
+          <div class="mindmap-top-bar">
+            <span class="mindmap-heading">⚡ ${escapeHtml(item.diagram.title || item.title)}</span>
+            <span class="mindmap-badge">Relationship Matrix</span>
+          </div>
+          <div class="diagram-matrix-container">
+            ${item.diagram.cells.map(c => `
+              <div class="diagram-matrix-cell" style="border-top: 3px solid ${c.color || 'var(--accent-current)'};">
+                <span class="diagram-matrix-tag">${escapeHtml(c.tag)}</span>
+                <div class="diagram-matrix-body">${escapeHtml(c.content)}</div>
+              </div>
+            `).join("")}
+          </div>
+        `;
+      }
+    }
+
+    // 2. Explicit mindMap object
+    if (item.mindMap && item.mindMap.branches) {
+      return `
+        <div class="mindmap-top-bar">
+          <span class="mindmap-heading">🗺️ ${escapeHtml(item.mindMap.centralTopic || item.title)}</span>
+          <span class="mindmap-badge">Exam Mind Map</span>
+        </div>
+        <div class="mindmap-root-node">
+          ⭐ ${escapeHtml(item.mindMap.centralTopic || item.title)}
+        </div>
+        <div class="mindmap-branches-grid">
+          ${item.mindMap.branches.map(b => `
+            <div class="mindmap-branch-card" style="border-top: 3px solid ${b.color || 'var(--accent-current)'};">
+              <div class="mindmap-branch-header" style="color: ${b.color || 'var(--accent-current)'};">
+                <span>${b.icon || '📌'}</span>
+                <span>${escapeHtml(b.title)}</span>
+              </div>
+              <div class="mindmap-pill-list">
+                ${(b.items || []).map(p => `
+                  <div class="mindmap-node-pill" style="border-left-color: ${b.color || 'var(--accent-current)'};">
+                    ${escapeHtml(p)}
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    // 3. Smart Automatic Infographic Mind Map Generator
+    const branches = [];
+    const colors = ["#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ec4899", "#3b82f6"];
+    const icons = ["💡", "🎯", "📌", "⚡", "🔍", "📖"];
+
+    (item.points || []).forEach((pt, idx) => {
+      const clean = pt.replace(/^[•\-\*\s]+/, "").trim();
+      const colonIdx = clean.indexOf(":");
+      if (colonIdx > 0 && colonIdx < 60) {
+        const title = clean.substring(0, colonIdx).trim();
+        const desc = clean.substring(colonIdx + 1).trim();
+        const subItems = desc.split(/;\s*|\.\s+(?=[A-Z0-9])/).map(s => s.trim()).filter(Boolean);
+        branches.push({
+          title,
+          color: colors[branches.length % colors.length],
+          icon: icons[branches.length % icons.length],
+          items: subItems.length > 0 ? subItems.slice(0, 4) : [desc]
+        });
+      } else {
+        branches.push({
+          title: `Point ${idx + 1}`,
+          color: colors[branches.length % colors.length],
+          icon: icons[branches.length % icons.length],
+          items: [clean]
+        });
+      }
+    });
+
+    return `
+      <div class="mindmap-top-bar">
+        <span class="mindmap-heading">🗺️ Exam-Oriented Infographic Mind Map</span>
+        <span class="mindmap-badge">Visual Concept Map</span>
+      </div>
+      <div class="mindmap-root-node">
+        🎯 ${escapeHtml(item.title)}
+      </div>
+      <div class="mindmap-branches-grid">
+        ${branches.map(b => `
+          <div class="mindmap-branch-card" style="border-top: 3px solid ${b.color};">
+            <div class="mindmap-branch-header" style="color: ${b.color};">
+              <span>${b.icon}</span>
+              <span>${escapeHtml(b.title)}</span>
+            </div>
+            <div class="mindmap-pill-list">
+              ${b.items.map(p => `
+                <div class="mindmap-node-pill" style="border-left-color: ${b.color};">
+                  ${escapeHtml(p)}
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    `;
   }
 
   renderTricksSection(paperData) {

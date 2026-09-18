@@ -316,7 +316,20 @@ export const paper2Data = {
             "  - Set-Associative Mapping (k-way): Cache divided into sets of k lines. Block j maps to set (j mod S). Balances speed and hit ratio. Address format: Tag | Set Index (log2 S) | Word Offset.",
             "• Average Memory Access Time (AMAT): AMAT = Hit Time + Miss Rate × Miss Penalty.",
             "  - For Multi-Level Caches (L1 and L2): AMAT = t_L1 + MissRate_L1 × (t_L2 + MissRate_L2 × t_RAM)."
-          ]
+          ],
+          "diagram": {
+            "type": "stack",
+            "title": "Computer Memory Hierarchy (Speed vs Capacity vs Cost)",
+            "badge": "Top = Fastest | Base = Largest",
+            "layers": [
+              { "level": "Level 0", "badge": "< 1 ns", "title": "CPU Registers", "desc": "Inside CPU core; fastest access, highest cost/bit", "accent": "#ec4899" },
+              { "level": "Level 1", "badge": "1 - 5 ns", "title": "Cache Memory (L1, L2, L3)", "desc": "SRAM based; buffers active instructions and data", "accent": "#8b5cf6" },
+              { "level": "Level 2", "badge": "50 - 100 ns", "title": "Main Memory (RAM)", "desc": "DRAM based; volatile operational program space", "accent": "#3b82f6" },
+              { "level": "Level 3", "badge": "10 - 100 µs", "title": "Solid State Storage (SSD / Flash)", "desc": "Non-volatile fast secondary storage; NAND flash", "accent": "#06b6d4" },
+              { "level": "Level 4", "badge": "5 - 10 ms", "title": "Magnetic Hard Disk (HDD)", "desc": "Magnetic platters; high capacity, low cost/GB", "accent": "#10b981" },
+              { "level": "Level 5", "badge": "Seconds", "title": "Magnetic Tape / Cloud Archive", "desc": "Tertiary cold storage for long-term backup", "accent": "#64748b" }
+            ]
+          }
         },
         {
           "title": "Cache Write Policies, Replacement & Virtual Memory Integration",

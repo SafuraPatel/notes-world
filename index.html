@@ -14,69 +14,89 @@
 
 <body class="paper-1-theme">
   <div class="app-wrapper">
-    <!-- Sticky Mobile Header -->
     <header class="app-header">
-      <div class="header-top">
-        <div class="brand-title">
-          <span class="brand-logo-badge" aria-label="Books Icon">📚</span>
-          <span>Notes World</span>
-        </div>
-        <div class="header-actions">
-          <button id="cloudSyncBtn" class="cloud-sync-btn" type="button" aria-label="Sync Cloud Data" title="Sync across devices">
-            <span class="sync-icon">🔄</span>
-            <span id="syncStatusText" class="sync-status-text">Sync</span>
+      <!-- Sticky Navigation Area (Sticks to top with compact dropdown toggle while scrolling) -->
+      <div id="stickyNavArea" class="sticky-nav-area">
+        <!-- Compact Dropdown Toggle Bar (Active while scrolling) -->
+        <div id="stickyHeaderToggleBar" class="sticky-header-toggle-bar">
+          <button id="stickyHeaderDropdownBtn" class="sticky-header-dropdown-btn" type="button" aria-expanded="false" title="Click to view header & navigation menu">
+            <div class="sticky-toggle-left">
+              <span class="sticky-brand-badge">📚</span>
+              <span id="stickyHeaderSummaryText" class="sticky-header-summary-text">Notes World • Paper 1</span>
+            </div>
+            <div class="sticky-toggle-right">
+              <span id="stickyActiveSectionBadge" class="sticky-active-badge">Units</span>
+              <span class="sticky-dropdown-arrow-icon">▼</span>
+            </div>
           </button>
-          <button id="themeToggleBtn" class="theme-toggle-btn" type="button" aria-label="Toggle Dark or Light Mode"
-            title="Toggle Theme">
-            <span id="themeIcon">🌙</span>
-          </button>
         </div>
-      </div>
 
-      <!-- 2-Way Paper Switcher -->
-      <nav class="paper-switcher" aria-label="Paper Selection">
-        <button id="btnPaper1" class="paper-tab-btn active" type="button">
-          Paper 1
-        </button>
-        <button id="btnPaper2" class="paper-tab-btn" type="button">
-          Paper 2
-        </button>
-      </nav>
+        <!-- Collapsible Top Header Section (Drops down while scrolling) -->
+        <div id="headerCollapsibleSection" class="header-collapsible-section">
+          <!-- 1. Header Top: Brand, Cloud Sync & Theme Toggle -->
+          <div class="header-top">
+            <div class="brand-title">
+              <span class="brand-logo-badge" aria-label="Books Icon">📚</span>
+              <span>Notes World</span>
+            </div>
+            <div class="header-actions">
+              <button id="cloudSyncBtn" class="cloud-sync-btn" type="button" aria-label="Sync Cloud Data" title="Sync across devices">
+                <span class="sync-icon">🔄</span>
+                <span id="syncStatusText" class="sync-status-text">Sync</span>
+              </button>
+              <button id="themeToggleBtn" class="theme-toggle-btn" type="button" aria-label="Toggle Dark or Light Mode"
+                title="Toggle Theme">
+                <span id="themeIcon">🌙</span>
+              </button>
+            </div>
+          </div>
 
-      <!-- 5 Essential Mobile Tabs: Units, Theory, Tricks, Questions, Notepad -->
-      <nav class="nav-tabs-bar" aria-label="Section Navigation" role="tablist">
-        <button class="tab-btn active" data-section="units" type="button" role="tab">
-          <span class="tab-icon">📚</span>
-          <span>Units</span>
-        </button>
-        <button class="tab-btn" data-section="theory" type="button" role="tab">
-          <span class="tab-icon">📖</span>
-          <span>Theory</span>
-        </button>
-        <button class="tab-btn" data-section="tricks" type="button" role="tab">
-          <span class="tab-icon">💡</span>
-          <span>Tricks</span>
-        </button>
-        <button class="tab-btn" data-section="questions" type="button" role="tab">
-          <span class="tab-icon">🎯</span>
-          <span>Questions <span id="tabQuestionsCountBadge">(0)</span></span>
-        </button>
-        <button class="tab-btn" data-section="notepad" type="button" role="tab">
-          <span class="tab-icon">📝</span>
-          <span>Notepad</span>
-        </button>
-      </nav>
+          <!-- 2. Paper Switcher: Paper 1 vs Paper 2 -->
+          <nav class="paper-switcher" aria-label="Paper Selection">
+            <button id="btnPaper1" class="paper-tab-btn active" type="button">
+              Paper 1
+            </button>
+            <button id="btnPaper2" class="paper-tab-btn" type="button">
+              Paper 2
+            </button>
+          </nav>
 
-      <!-- Unit Filter & Search (Visible on Theory & Tricks tabs) -->
-      <div id="filterBar" class="filter-bar" style="display: none;">
-        <div class="filter-row">
-          <select id="unitSelectDropdown" class="unit-select-box" aria-label="Filter by Unit">
-            <!-- Dynamically populated -->
-          </select>
+          <!-- 3. 5 Essential Section Tabs: Units, Theory, Tricks, Questions, Notepad -->
+          <nav class="nav-tabs-bar" aria-label="Section Navigation" role="tablist">
+            <button class="tab-btn active" data-section="units" type="button" role="tab">
+              <span class="tab-icon">📚</span>
+              <span>Units</span>
+            </button>
+            <button class="tab-btn" data-section="theory" type="button" role="tab">
+              <span class="tab-icon">📖</span>
+              <span>Theory</span>
+            </button>
+            <button class="tab-btn" data-section="tricks" type="button" role="tab">
+              <span class="tab-icon">💡</span>
+              <span>Tricks</span>
+            </button>
+            <button class="tab-btn" data-section="questions" type="button" role="tab">
+              <span class="tab-icon">🎯</span>
+              <span>Questions <span id="tabQuestionsCountBadge">(0)</span></span>
+            </button>
+            <button class="tab-btn" data-section="notepad" type="button" role="tab">
+              <span class="tab-icon">📝</span>
+              <span>Notepad</span>
+            </button>
+          </nav>
         </div>
-        <div class="search-box-wrap">
-          <span>🔍</span>
-          <input type="search" id="globalSearchInput" placeholder="Search theory or tricks..." autocomplete="off">
+
+        <!-- 4. Unit Filter & Search (Visible on Theory & Tricks tabs) -->
+        <div id="filterBar" class="filter-bar" style="display: none;">
+          <div class="filter-row">
+            <select id="unitSelectDropdown" class="unit-select-box" aria-label="Filter by Unit">
+              <!-- Dynamically populated -->
+            </select>
+          </div>
+          <div class="search-box-wrap">
+            <span>🔍</span>
+            <input type="search" id="globalSearchInput" placeholder="Search theory or tricks..." autocomplete="off">
+          </div>
         </div>
       </div>
     </header>
@@ -101,14 +121,17 @@
       <section id="theorySection" class="content-section" style="display: none;">
         <div class="section-header">
           <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+            <button class="btn-back-to-home" type="button" title="Back to Units (Home)">
+              ← Units
+            </button>
             <h2 class="section-title">
               <span>📖</span>
               <span>Theory</span>
             </h2>
             <span id="theoryCountBadge" class="section-badge">0 Topics</span>
           </div>
-          <button id="btnHeaderAddTheory" class="btn-header-add" type="button">
-            <span>➕</span> Add Topic
+          <button id="btnHeaderAddTheory" class="btn-header-add" type="button" title="Add Theory Topic">
+            <span class="btn-add-icon">+</span> Add
           </button>
         </div>
 
@@ -121,14 +144,17 @@
       <section id="tricksSection" class="content-section" style="display: none;">
         <div class="section-header">
           <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+            <button class="btn-back-to-home" type="button" title="Back to Units (Home)">
+              ← Units
+            </button>
             <h2 class="section-title">
               <span>💡</span>
               <span>Short Tricks &amp; Mnemonics</span>
             </h2>
             <span id="tricksCountBadge" class="section-badge">0 Tricks</span>
           </div>
-          <button id="btnHeaderAddTrick" class="btn-header-add" type="button">
-            <span>➕</span> Add Trick
+          <button id="btnHeaderAddTrick" class="btn-header-add" type="button" title="Add Short Trick">
+            <span class="btn-add-icon">+</span> Add
           </button>
         </div>
 
@@ -140,10 +166,15 @@
       <!-- 4. QUESTIONS (PYQ) SECTION -->
       <section id="questionsSection" class="content-section" style="display: none;">
         <div class="section-header">
-          <h2 class="section-title">
-            <span>🎯</span>
-            <span id="questionsSectionTitle">Unit-wise PYQs (Paper 1)</span>
-          </h2>
+          <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+            <button class="btn-back-to-home" type="button" title="Back to Units (Home)">
+              ← Units
+            </button>
+            <h2 class="section-title">
+              <span>🎯</span>
+              <span id="questionsSectionTitle">Unit-wise PYQs (Paper 1)</span>
+            </h2>
+          </div>
           <span id="questionsCountBadge" class="section-badge">0 Questions</span>
         </div>
 
@@ -168,10 +199,15 @@
       <!-- 5. NOTEPAD SECTION (My Points - Newest Always on Top) -->
       <section id="notepadSection" class="content-section" style="display: none;">
         <div class="section-header">
-          <h2 class="section-title">
-            <span>📝</span>
-            <span id="notepadSectionTitle">My Points (Paper 1)</span>
-          </h2>
+          <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+            <button class="btn-back-to-home" type="button" title="Back to Units (Home)">
+              ← Units
+            </button>
+            <h2 class="section-title">
+              <span>📝</span>
+              <span id="notepadSectionTitle">My Points (Paper 1)</span>
+            </h2>
+          </div>
           <span id="notesCountBadge" class="section-badge">0 Points</span>
         </div>
 
@@ -263,7 +299,7 @@
         </div>
         <div class="modal-field">
           <label for="trickModalMnemonic">Mnemonic / Shortcut Rule:</label>
-          <input type="text" id="trickModalMnemonic" class="modal-input" placeholder="Ramu caca please samosa" required>
+          <textarea id="trickModalMnemonic" class="modal-textarea" rows="2" placeholder="Ramu caca please samosa" required></textarea>
         </div>
         <div class="modal-field">
           <label for="trickModalExplanation">Explanation:</label>

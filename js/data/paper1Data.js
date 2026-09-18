@@ -33,7 +33,17 @@ export const paper1Data = {
             "• Understanding Level (Morrison): Thoughtful stage emphasizing comprehension of relationships, grasping generalized rules, unit mastery, and explaining concepts with examples.",
             "• Morrison's 5 Teaching Stages: 1. Exploration, 2. Presentation, 3. Assimilation, 4. Organization, 5. Recitation.",
             "• Reflective Level (Hunt): Highest introspective and thoughtful level emphasizing problem-raising, hypothesis formulation, student-centred critical inquiry, and original creative problem-solving."
-          ]
+          ],
+          "diagram": {
+            "type": "stack",
+            "title": "Tri-Level Teaching Hierarchy (Herbart → Morrison → Hunt)",
+            "badge": "Cognitive Depth",
+            "layers": [
+              { "level": "Level 3", "badge": "Reflective (Hunt)", "title": "Highest Introspective", "desc": "Problem-raising & creative problem-solving; student-centred inquiry", "accent": "#8b5cf6" },
+              { "level": "Level 2", "badge": "Understanding (Morrison)", "title": "Thoughtful Comprehension", "desc": "Mastery of concepts, relations & generalized rules; explanation with examples", "accent": "#06b6d4" },
+              { "level": "Level 1", "badge": "Memory (Herbart)", "title": "Thoughtless Conditioning", "desc": "Rote recall, stimulus-response conditioning & factual retention", "accent": "#10b981" }
+            ]
+          }
         },
         {
           "title": "Major Educational & Learning Theories (Piaget, Vygotsky, Bruner, Ausubel, Gagne)",
@@ -50,7 +60,19 @@ export const paper1Data = {
           "points": [
             "• Edgar Dale's Cone of Experience (Concrete to Abstract): Direct Purposeful Experiences (Base - 90% retention) → Contrived Experiences (Models, Mockups) → Dramatized Experiences → Demonstrations → Field Trips → Exhibits → Motion Pictures (Video) → Audio Recordings / Still Photos → Visual Symbols (Charts/Maps) → Verbal Symbols (Text/Words - Pinnacle - 10% retention).",
             "• Core Implication: Active doing and multi-sensory experiences yield vastly higher learning retention than passive reading or listening."
-          ]
+          ],
+          "diagram": {
+            "type": "stack",
+            "title": "Dale's Cone of Experience (Retention Gradient)",
+            "badge": "Pinnacle to Base",
+            "layers": [
+              { "level": "10% Retention", "badge": "Abstract Peak", "title": "Verbal Symbols", "desc": "Reading text & listening to words", "accent": "#ef4444" },
+              { "level": "30% Retention", "badge": "Visual", "title": "Visual Symbols & Charts", "desc": "Looking at maps, diagrams, photos", "accent": "#f59e0b" },
+              { "level": "50% Retention", "badge": "Audio-Visual", "title": "Demonstrations & Video", "desc": "Watching experiments & motion pictures", "accent": "#3b82f6" },
+              { "level": "70% Retention", "badge": "Participatory", "title": "Simulations & Drama", "desc": "Role play, hands-on workshops", "accent": "#06b6d4" },
+              { "level": "90% Retention", "badge": "Concrete Base", "title": "Direct Purposeful Experience", "desc": "Active physical doing & real-life execution", "accent": "#10b981" }
+            ]
+          }
         },
         {
           "title": "Bloom's Revised Taxonomy of Educational Objectives",
@@ -58,7 +80,20 @@ export const paper1Data = {
             "• Cognitive Domain Hierarchy (Low to High): Remember → Understand → Apply → Analyze → Evaluate → Create.",
             "• Anderson & Krathwohl Revision (2001): Replaced static nouns with active verbs; swapped top two levels by moving 'Creating' to the apex above 'Evaluating'.",
             "• Knowledge Dimensions (4 Types): Factual Knowledge (terminology, specific details), Conceptual Knowledge (classifications, theories, principles), Procedural Knowledge (skills, algorithms, techniques), Metacognitive Knowledge (self-awareness of one's own cognition)."
-          ]
+          ],
+          "diagram": {
+            "type": "stack",
+            "title": "Bloom's Revised Taxonomy (Anderson & Krathwohl 2001)",
+            "badge": "Apex to Foundation",
+            "layers": [
+              { "level": "Apex", "badge": "Create", "title": "Highest Cognitive Level", "desc": "Produce new or original work; design, assemble, construct", "accent": "#ec4899" },
+              { "level": "Level 5", "badge": "Evaluate", "title": "Justify Stand / Stance", "desc": "Appraise, argue, defend, judge, critique", "accent": "#8b5cf6" },
+              { "level": "Level 4", "badge": "Analyze", "title": "Draw Connections", "desc": "Differentiate, organize, relate, compare, contrast", "accent": "#3b82f6" },
+              { "level": "Level 3", "badge": "Apply", "title": "Use in New Contexts", "desc": "Execute, implement, solve, use, demonstrate", "accent": "#06b6d4" },
+              { "level": "Level 2", "badge": "Understand", "title": "Explain Ideas & Concepts", "desc": "Classify, describe, discuss, explain, identify", "accent": "#10b981" },
+              { "level": "Level 1", "badge": "Remember", "title": "Recall Facts & Basic Concepts", "desc": "Define, duplicate, list, memorize, repeat, state", "accent": "#f59e0b" }
+            ]
+          }
         },
         {
           "title": "Affective & Psychomotor Domains of Educational Objectives",
@@ -273,7 +308,21 @@ export const paper1Data = {
             "• Step 6: Data Collection (administering questionnaires, interviews, tests, observations).",
             "• Step 7: Data Processing, Analysis & Hypothesis Testing (statistical evaluation, coding).",
             "• Step 8: Interpretation, Generalization & Preparation of Research Report / Thesis."
-          ]
+          ],
+          "diagram": {
+            "type": "flow",
+            "title": "8-Step Research Process Pipeline",
+            "steps": [
+              { "title": "1. Problem", "desc": "Identify & formulate research question" },
+              { "title": "2. Literature", "desc": "Review prior work & find gaps" },
+              { "title": "3. Hypothesis", "desc": "Formulate testable H0 and H1" },
+              { "title": "4. Design", "desc": "Develop methodology blueprint" },
+              { "title": "5. Sampling", "desc": "Target population & sample frame" },
+              { "title": "6. Data Collection", "desc": "Surveys, tests, observations" },
+              { "title": "7. Analysis", "desc": "Statistical testing & hypothesis evaluation" },
+              { "title": "8. Report", "desc": "Interpretation, thesis & conclusion" }
+            ]
+          }
         },
         {
           "title": "Hypothesis Formulation, Types & Testing Mechanics",
@@ -944,7 +993,17 @@ export const paper1Data = {
             "• Contrary (A ↔ E): Top horizontal relation between Universals. Both CANNOT be true simultaneously, but both CAN be false. If one is True, the other is False. If one is False, the other is Undetermined / Doubtful.",
             "• Sub-Contrary (I ↔ O): Bottom horizontal relation between Particulars. Both CANNOT be false simultaneously, but both CAN be true. If one is False, the other is True. If one is True, the other is Undetermined.",
             "• Subalternation (A ↓ I, E ↓ O): Vertical relation between Universal and its corresponding Particular. Truth flows DOWNWARDS (If Universal is True, Particular is True). Falsehood flows UPWARDS (If Particular is False, Universal is False)."
-          ]
+          ],
+          "diagram": {
+            "type": "matrix",
+            "title": "Classical Square of Opposition Matrix",
+            "cells": [
+              { "tag": "A (Universal Affirmative)", "color": "#8b5cf6", "content": "'All S are P' — Contrary to E (cannot both be true, can both be false); Contradictory to O (strictly opposite truth value); Subaltern down to I." },
+              { "tag": "E (Universal Negative)", "color": "#ef4444", "content": "'No S is P' — Contrary to A; Contradictory to I (strictly opposite); Subaltern down to O." },
+              { "tag": "I (Particular Affirmative)", "color": "#10b981", "content": "'Some S are P' — Sub-contrary to O (cannot both be false, can both be true); Contradictory to E; Subaltern from A (Truth flows DOWN)." },
+              { "tag": "O (Particular Negative)", "color": "#f59e0b", "content": "'Some S are not P' — Sub-contrary to I; Contradictory to A; Subaltern from E (Falsehood flows UP)." }
+            ]
+          }
         },
         {
           "title": "Mood and Figure of Categorical Syllogisms",
