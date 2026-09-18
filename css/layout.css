@@ -260,6 +260,16 @@
   gap: 0.65rem;
 }
 
+.brand-logo-badge {
+  font-size: 1.4rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.35));
+}
+
+.theme-toggle-btn,
 .brand-theme-btn {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -271,7 +281,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   cursor: pointer;
   color: var(--text-main);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -279,6 +289,7 @@
   flex-shrink: 0;
 }
 
+.theme-toggle-btn:hover,
 .brand-theme-btn:hover {
   background: rgba(255, 255, 255, 0.14);
   border-color: var(--accent-current);
@@ -286,16 +297,19 @@
   box-shadow: 0 4px 14px rgba(139, 92, 246, 0.25);
 }
 
+.theme-toggle-btn:active,
 .brand-theme-btn:active {
   transform: scale(0.95);
 }
 
+[data-theme="light"] .theme-toggle-btn,
 [data-theme="light"] .brand-theme-btn {
   background: #ffffff;
   border-color: #e2e8f0;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
 }
 
+[data-theme="light"] .theme-toggle-btn:hover,
 [data-theme="light"] .brand-theme-btn:hover {
   background: #f8fafc;
   border-color: var(--accent-current);
