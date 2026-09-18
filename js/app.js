@@ -281,8 +281,12 @@ class AppController {
   }
 
   updateThemeIcon(theme) {
+    const icon = theme === "dark" ? "🌙" : "☀️";
     if (this.themeIcon) {
-      this.themeIcon.textContent = theme === "dark" ? "🌙" : "☀️";
+      this.themeIcon.textContent = icon;
+    }
+    if (this.stickyThemeIcon) {
+      this.stickyThemeIcon.textContent = icon;
     }
   }
 
@@ -301,11 +305,22 @@ class AppController {
       this.updateStickySummary();
     });
 
-    // Theme toggle
-    this.themeToggleBtn.addEventListener("click", () => {
-      store.toggleTheme();
-      this.updateThemeIcon(store.getState().theme);
-    });
+    // Theme toggle (Main brand title)
+    if (this.themeToggleBtn) {
+      this.themeToggleBtn.addEventListener("click", () => {
+        store.toggleTheme();
+        this.updateThemeIcon(store.getState().theme);
+      });
+    }
+
+    // Theme toggle (Sticky bar)
+    if (this.stickyThemeToggleBtn) {
+      this.stickyThemeToggleBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        store.toggleTheme();
+        this.updateThemeIcon(store.getState().theme);
+      });
+    }
 
     // Cloud Sync Button
     if (this.cloudSyncBtn) {
