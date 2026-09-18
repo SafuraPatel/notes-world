@@ -78,6 +78,8 @@ class AppController {
     // Header controls
     this.btnPaper1 = document.getElementById("btnPaper1");
     this.btnPaper2 = document.getElementById("btnPaper2");
+    this.cloudSyncBtn = document.getElementById("cloudSyncBtn");
+    this.syncStatusText = document.getElementById("syncStatusText");
     this.themeToggleBtn = document.getElementById("themeToggleBtn");
     this.themeIcon = document.getElementById("themeIcon");
     this.navTabBtns = document.querySelectorAll(".tab-btn");
@@ -191,6 +193,13 @@ class AppController {
       this.updateThemeIcon(store.getState().theme);
     });
 
+    // Cloud Sync Button
+    if (this.cloudSyncBtn) {
+      this.cloudSyncBtn.addEventListener("click", () => {
+        this.triggerManualSync();
+      });
+    }
+
     // Tab buttons (Units, Theory, Tricks, Notepad)
     this.navTabBtns.forEach(btn => {
       btn.addEventListener("click", () => {
@@ -290,6 +299,35 @@ class AppController {
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape") closeModals();
     });
+  }
+
+  async triggerManualSync() {
+    if (!this.cloudSyncBtn) return;
+    this.cloudSyncBtn.classList.add("syncing");
+    if (this.syncStatusText) this.syncStatusText.textContent = "Syncing...";
+    try {
+      const [notesUpdated, dataUpdated] = await Promise.all([
+        notesManager.syncFromCloud(),
+        dataManager.syncFromCloud()
+      ]);
+      this.cloudSyncBtn.classList.remove("syncing");
+      if (this.syncStatusText) {
+        this.syncStatusText.textContent = "Synced ✓";
+        setTimeout(() => {
+          if (this.syncStatusText) this.syncStatusText.textContent = "Sync";
+        }, 2200);
+      }
+      showToast(notesUpdated || dataUpdated ? "Latest updates synced from cloud!" : "All notes and topics up to date!", "success");
+    } catch (e) {
+      this.cloudSyncBtn.classList.remove("syncing");
+      if (this.syncStatusText) {
+        this.syncStatusText.textContent = "Offline";
+        setTimeout(() => {
+          if (this.syncStatusText) this.syncStatusText.textContent = "Sync";
+        }, 2200);
+      }
+      showToast("Cloud sync failed. Working in offline mode.", "info");
+    }
   }
 
   // --- MODAL CONTROLLERS ---

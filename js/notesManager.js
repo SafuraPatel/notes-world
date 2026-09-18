@@ -14,6 +14,7 @@ export class NotesManager {
 
     // Automatically sync latest shared notes from Netlify Cloud DB
     this.syncFromCloud();
+    this.setupBackgroundSync();
   }
 
   loadNotes() {
@@ -52,27 +53,59 @@ export class NotesManager {
     ];
   }
 
+  setupBackgroundSync() {
+    // Re-sync whenever user focuses or returns to the tab
+    window.addEventListener("focus", () => this.syncFromCloud());
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        this.syncFromCloud();
+      }
+    });
+
+    // Background polling every 12 seconds
+    setInterval(() => {
+      if (document.visibilityState === "visible") {
+        this.syncFromCloud();
+      }
+    }, 12000);
+  }
+
   async syncFromCloud() {
     try {
-      const res = await fetch("/api/data?type=notes");
+      const res = await fetch(`/api/data?type=notes&_t=${Date.now()}`, {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache"
+        }
+      });
       if (res.ok) {
         const json = await res.json();
         if (json && json.success && json.notes && Array.isArray(json.notes)) {
-          this.notes = json.notes;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(this.notes));
-          this.notifyListeners();
+          const currentStr = JSON.stringify(this.notes);
+          const incomingStr = JSON.stringify(json.notes);
+          if (currentStr !== incomingStr) {
+            this.notes = json.notes;
+            localStorage.setItem(STORAGE_KEY, incomingStr);
+            this.notifyListeners();
+            return true;
+          }
         }
       }
     } catch (e) {
       // Offline fallback
     }
+    return false;
   }
 
   async syncToCloud() {
     try {
       await fetch("/api/data", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache"
+        },
         body: JSON.stringify({ type: "notes", notes: this.notes })
       });
     } catch (e) {

@@ -21,6 +21,22 @@ export class DataManager {
 
     // Automatically sync latest shared updates from Netlify Cloud DB on launch
     this.syncFromCloud();
+    this.setupBackgroundSync();
+  }
+
+  setupBackgroundSync() {
+    window.addEventListener("focus", () => this.syncFromCloud());
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        this.syncFromCloud();
+      }
+    });
+
+    setInterval(() => {
+      if (document.visibilityState === "visible") {
+        this.syncFromCloud();
+      }
+    }, 15000);
   }
 
   initPaperData(paperId, storageKey, defaultData) {
@@ -67,19 +83,24 @@ export class DataManager {
     try {
       let hasUpdate = false;
       for (const paperId of ["paper1", "paper2"]) {
-        const res = await fetch(`/api/data?paper=${paperId}`);
+        const res = await fetch(`/api/data?paper=${paperId}&_t=${Date.now()}`, {
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache", "Pragma": "no-cache" }
+        });
         if (res.ok) {
           const json = await res.json();
-          if (json && json.success && json.data && json.data.units) {
-            const cloudTopics = json.data.units.reduce((acc, u) => acc + (u.theoryNotes ? u.theoryNotes.length : 0), 0);
-            const currentTopics = this.data[paperId].units.reduce((acc, u) => acc + (u.theoryNotes ? u.theoryNotes.length : 0), 0);
-            if (cloudTopics >= currentTopics) {
-              this.data[paperId] = json.data;
-              const storageKey = paperId === "paper1" ? STORAGE_KEY_P1 : STORAGE_KEY_P2;
-              localStorage.setItem(storageKey, JSON.stringify(json.data));
-              hasUpdate = true;
-            } else {
-              // Local dataset is newer/larger: sync UP to cloud
+          if (json && json.success) {
+            if (json.data && json.data.units) {
+              const currentStr = JSON.stringify(this.data[paperId]);
+              const incomingStr = JSON.stringify(json.data);
+              if (currentStr !== incomingStr) {
+                this.data[paperId] = json.data;
+                const storageKey = paperId === "paper1" ? STORAGE_KEY_P1 : STORAGE_KEY_P2;
+                localStorage.setItem(storageKey, incomingStr);
+                hasUpdate = true;
+              }
+            } else if (json.data === null) {
+              // Cloud DB is not initialized for this paper yet, seed it from local
               this.syncToCloud(paperId);
             }
           }
@@ -87,17 +108,22 @@ export class DataManager {
       }
       if (hasUpdate) {
         this.notify();
+        return true;
       }
     } catch (e) {
       // Offline fallback: continue using localStorage
     }
+    return false;
   }
 
   async syncToCloud(paperId) {
     try {
       await fetch("/api/data", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache"
+        },
         body: JSON.stringify({ paperId, data: this.data[paperId] })
       });
     } catch (e) {

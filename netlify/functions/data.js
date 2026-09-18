@@ -17,9 +17,13 @@ const memoryStore = new Map();
 async function getBlobStore() {
   if (getStore) {
     try {
-      return getStore({ name: "notes_world_cloud_db" });
+      return getStore({ name: "notes_world_cloud_db", consistency: "strong" });
     } catch (e) {
-      console.warn("Could not initialize Netlify Blob store:", e);
+      try {
+        return getStore("notes_world_cloud_db");
+      } catch (err2) {
+        console.warn("Could not initialize Netlify Blob store:", err2);
+      }
     }
   }
   return null;
@@ -28,9 +32,10 @@ async function getBlobStore() {
 exports.handler = async (event, context) => {
   const headers = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, Cache-Control",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate"
   };
 
   // Handle CORS preflight
