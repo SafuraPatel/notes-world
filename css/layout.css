@@ -55,6 +55,14 @@
   margin-bottom: 0.25rem;
 }
 
+.sticky-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.sticky-sync-btn,
 .sticky-theme-btn {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -66,7 +74,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   cursor: pointer;
   color: var(--text-main);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -74,6 +82,7 @@
   flex-shrink: 0;
 }
 
+.sticky-sync-btn:hover,
 .sticky-theme-btn:hover {
   background: rgba(255, 255, 255, 0.14);
   border-color: var(--accent-current);
@@ -81,16 +90,24 @@
   box-shadow: 0 4px 14px rgba(139, 92, 246, 0.25);
 }
 
+.sticky-sync-btn:active,
 .sticky-theme-btn:active {
   transform: scale(0.94);
 }
 
+.sticky-sync-btn.syncing .sync-icon {
+  display: inline-block;
+  animation: spinSync 0.9s linear infinite;
+}
+
+[data-theme="light"] .sticky-sync-btn,
 [data-theme="light"] .sticky-theme-btn {
   background: #ffffff;
   border-color: #e2e8f0;
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
 }
 
+[data-theme="light"] .sticky-sync-btn:hover,
 [data-theme="light"] .sticky-theme-btn:hover {
   background: #f8fafc;
   border-color: var(--accent-current);
