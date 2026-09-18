@@ -7,9 +7,9 @@
   <title>Notes World</title>
   <meta name="description"
     content="Notes World: Ultra-simple, mobile-first study portal for UGC NET and MH-SET. Essential Units, Theory bullet points, Short Tricks, and personal Notepad for Paper 1 and Paper 2 Computer Science.">
-  <link rel="stylesheet" href="css/theme.css?v=2.3">
-  <link rel="stylesheet" href="css/layout.css?v=2.3">
-  <link rel="stylesheet" href="css/components.css?v=2.3">
+  <link rel="stylesheet" href="css/theme.css?v=2.4">
+  <link rel="stylesheet" href="css/layout.css?v=2.4">
+  <link rel="stylesheet" href="css/components.css?v=2.4">
 </head>
 
 <body class="paper-1-theme">
@@ -19,14 +19,10 @@
       <div id="stickyNavArea" class="sticky-nav-area">
         <!-- Compact Dropdown Toggle Bar (Active while scrolling) -->
         <div id="stickyHeaderToggleBar" class="sticky-header-toggle-bar">
-          <button id="stickyThemeToggleBtn" class="sticky-theme-btn" type="button" aria-label="Toggle Dark or Light Mode"
-            title="Toggle Theme">
-            <span id="stickyThemeIcon">🌙</span>
-          </button>
           <button id="stickyHeaderDropdownBtn" class="sticky-header-dropdown-btn" type="button" aria-expanded="false"
             title="Click to view header & navigation menu">
             <div class="sticky-toggle-left">
-              <span class="sticky-brand-dot"></span>
+              <span class="sticky-brand-badge">📚</span>
               <span id="stickyHeaderSummaryText" class="sticky-header-summary-text">Notes World • Paper 1</span>
             </div>
             <div class="sticky-toggle-right">
@@ -34,17 +30,18 @@
               <span class="sticky-dropdown-arrow-icon">▼</span>
             </div>
           </button>
+          <button id="stickyThemeToggleBtn" class="sticky-theme-btn" type="button" aria-label="Toggle Dark or Light Mode"
+            title="Toggle Theme">
+            <span id="stickyThemeIcon">🌙</span>
+          </button>
         </div>
 
         <!-- Collapsible Top Header Section (Drops down while scrolling) -->
         <div id="headerCollapsibleSection" class="header-collapsible-section">
-          <!-- 1. Header Top: Brand (Theme Toggle instead of Books) & Cloud Sync -->
+          <!-- 1. Header Top: Brand on left, Sync button with Theme toggle on right -->
           <div class="header-top">
             <div class="brand-title">
-              <button id="themeToggleBtn" class="brand-theme-btn" type="button" aria-label="Toggle Dark or Light Mode"
-                title="Toggle Theme">
-                <span id="themeIcon">🌙</span>
-              </button>
+              <span class="brand-logo-badge" aria-label="Books Icon">📚</span>
               <div class="brand-name-group">
                 <span class="brand-title-text">Notes World</span>
                 <span class="brand-subtitle-badge">UGC NET • SET</span>
@@ -55,6 +52,10 @@
                 title="Sync across devices">
                 <span class="sync-icon">🔄</span>
                 <span id="syncStatusText" class="sync-status-text">Sync</span>
+              </button>
+              <button id="themeToggleBtn" class="theme-toggle-btn" type="button" aria-label="Toggle Dark or Light Mode"
+                title="Toggle Theme">
+                <span id="themeIcon">🌙</span>
               </button>
             </div>
           </div>
