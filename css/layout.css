@@ -6,9 +6,12 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  width: 100%;
   max-width: 860px;
   margin: 0 auto;
   padding: 0 1rem 3rem 1rem;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 /* Header */
@@ -16,6 +19,9 @@
   position: sticky;
   top: 0;
   z-index: 100;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   background: var(--bg-main);
   padding: 0.75rem 0 0.5rem 0;
   border-bottom: 1px solid var(--border);
@@ -177,16 +183,27 @@
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .filter-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .unit-select-box {
-  flex: 1;
+  flex: 1 1 0%;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   background: var(--bg-input);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -196,6 +213,10 @@
   color: var(--text-main);
   appearance: auto;
   cursor: pointer;
+  box-sizing: border-box;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .unit-select-box:focus {
@@ -211,14 +232,21 @@
   border-radius: var(--radius-sm);
   padding: 0.45rem 0.75rem;
   gap: 0.4rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .search-box-wrap input {
-  flex: 1;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: 100%;
   background: transparent;
   border: none;
   font-size: 0.85rem;
   color: var(--text-main);
+  box-sizing: border-box;
 }
 
 .search-box-wrap input:focus {
@@ -241,11 +269,19 @@
 
 @media (max-width: 480px) {
   .app-wrapper {
-    padding: 0 0.6rem 3rem 0.6rem;
+    padding: 0 0.5rem 3rem 0.5rem;
+    width: 100%;
+    max-width: 100vw;
   }
 
   .brand-title {
-    font-size: 1.15rem;
+    font-size: 1.1rem;
+    gap: 0.35rem;
+  }
+
+  .cloud-sync-btn {
+    padding: 0.38rem 0.55rem;
+    font-size: 0.75rem;
   }
 
   .paper-tab-btn {
@@ -254,11 +290,21 @@
   }
 
   .tab-btn {
-    font-size: 0.75rem;
-    padding: 0.5rem 0.15rem;
+    font-size: 0.72rem;
+    padding: 0.5rem 0.1rem;
+    gap: 0.15rem;
   }
 
   .tab-btn .tab-icon {
-    font-size: 1rem;
+    font-size: 0.95rem;
+  }
+
+  .filter-bar {
+    padding: 0.5rem;
+  }
+
+  .unit-select-box {
+    font-size: 0.82rem;
+    padding: 0.5rem 0.6rem;
   }
 }

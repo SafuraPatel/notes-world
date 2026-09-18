@@ -635,6 +635,16 @@ class AppController {
     const state = store.getState();
     const isQuestions = state.activeSection === "questions";
 
+    // Cache key to only rebuild options if paper or section mode changes
+    const dropdownKey = `${state.activePaper}_${isQuestions ? "pyq" : "std"}`;
+    if (this._currentDropdownKey === dropdownKey && this.unitSelectDropdown) {
+      if (this.unitSelectDropdown.value !== state.selectedUnitId) {
+        this.unitSelectDropdown.value = state.selectedUnitId;
+      }
+      return;
+    }
+    this._currentDropdownKey = dropdownKey;
+
     let allLabel = "All Units (1 to 10)";
     if (isQuestions) {
       const totalQ = questionsManager.getQuestions(state.activePaper, "all").length;
@@ -654,6 +664,7 @@ class AppController {
     });
 
     this.unitSelectDropdown.innerHTML = optionsHtml;
+    this.unitSelectDropdown.value = state.selectedUnitId;
 
     // Notepad form unit select
     const formUnitSelect = document.getElementById("noteUnitSelect");
@@ -1252,3 +1263,19 @@ class AppController {
 document.addEventListener("DOMContentLoaded", () => {
   window.appController = new AppController();
 });
+
+// Remove any injected "Powered by Netlify" badges
+function purgeNetlifyBadge() {
+  const elements = document.querySelectorAll(
+    '#netlify-badge, .netlify-badge, [data-netlify-badge], iframe[src*="netlify"], a[href*="netlify.com"]'
+  );
+  elements.forEach(el => {
+    const text = (el.innerText || el.textContent || "").toLowerCase();
+    if (text.includes("powered by netlify") || el.closest('#netlify-badge, [data-netlify-badge]')) {
+      el.remove();
+    }
+  });
+}
+purgeNetlifyBadge();
+setInterval(purgeNetlifyBadge, 1500);
+
