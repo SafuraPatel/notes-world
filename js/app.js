@@ -261,11 +261,9 @@ class AppController {
   }
 
   updateStickySummary() {
-    if (!this.stickyHeaderSummaryText || !this.stickyActiveSectionBadge) return;
     const state = store.getState();
     const isP1 = state.activePaper === "paper1";
     const paperLabel = isP1 ? "Paper 1" : "Paper 2";
-    this.stickyHeaderSummaryText.textContent = `Notes World • ${paperLabel}`;
 
     const sectionLabels = {
       units: "Units",
@@ -274,7 +272,23 @@ class AppController {
       questions: "Questions",
       notepad: "Notepad"
     };
-    this.stickyActiveSectionBadge.textContent = sectionLabels[state.activeSection] || state.activeSection;
+    const sectionName = sectionLabels[state.activeSection] || state.activeSection;
+
+    // Row 1 Badges: P 1/2 indicator and (section) badge
+    if (this.headerPaperBadge) {
+      this.headerPaperBadge.textContent = isP1 ? "P 1" : "P 2";
+      this.headerPaperBadge.title = isP1 ? "Paper 1 active (Click to switch to Paper 2)" : "Paper 2 active (Click to switch to Paper 1)";
+    }
+    if (this.headerSectionBadge) {
+      this.headerSectionBadge.textContent = `(${sectionName})`;
+    }
+
+    if (this.stickyHeaderSummaryText) {
+      this.stickyHeaderSummaryText.textContent = `Notes World • ${paperLabel}`;
+    }
+    if (this.stickyActiveSectionBadge) {
+      this.stickyActiveSectionBadge.textContent = sectionName;
+    }
   }
 
   initTheme() {
@@ -294,19 +308,32 @@ class AppController {
   }
 
   bindEvents() {
+    // P 1/2 Toggle button in header Row 1
+    if (this.headerPaperBadge) {
+      this.headerPaperBadge.addEventListener("click", () => {
+        const next = store.getState().activePaper === "paper1" ? "paper2" : "paper1";
+        store.setActivePaper(next);
+        this.updateStickySummary();
+      });
+    }
+
     // Paper 1 switch
-    this.btnPaper1.addEventListener("click", () => {
-      this.closeStickyDropdown();
-      store.setActivePaper("paper1");
-      this.updateStickySummary();
-    });
+    if (this.btnPaper1) {
+      this.btnPaper1.addEventListener("click", () => {
+        this.closeStickyDropdown();
+        store.setActivePaper("paper1");
+        this.updateStickySummary();
+      });
+    }
 
     // Paper 2 switch
-    this.btnPaper2.addEventListener("click", () => {
-      this.closeStickyDropdown();
-      store.setActivePaper("paper2");
-      this.updateStickySummary();
-    });
+    if (this.btnPaper2) {
+      this.btnPaper2.addEventListener("click", () => {
+        this.closeStickyDropdown();
+        store.setActivePaper("paper2");
+        this.updateStickySummary();
+      });
+    }
 
     // Theme toggle (Main brand title)
     if (this.themeToggleBtn) {
