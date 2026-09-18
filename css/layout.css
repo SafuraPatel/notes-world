@@ -245,55 +245,91 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.65rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="light"] .header-top {
+  border-bottom-color: rgba(226, 232, 240, 0.8);
 }
 
 .brand-title {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: var(--text-main);
-  letter-spacing: -0.02em;
+  gap: 0.65rem;
 }
 
 .brand-theme-btn {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-md);
-  width: 38px;
-  height: 38px;
-  min-width: 38px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.18rem;
+  font-size: 1.2rem;
   cursor: pointer;
   color: var(--text-main);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
 }
 
 .brand-theme-btn:hover {
-  background: var(--bg-hover);
+  background: rgba(255, 255, 255, 0.14);
   border-color: var(--accent-current);
-  transform: scale(1.06);
+  transform: translateY(-1px) scale(1.06);
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.25);
 }
 
 .brand-theme-btn:active {
   transform: scale(0.95);
 }
 
-.brand-logo-badge {
-  font-size: 1.3rem;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3));
+[data-theme="light"] .brand-theme-btn {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+[data-theme="light"] .brand-theme-btn:hover {
+  background: #f8fafc;
+  border-color: var(--accent-current);
+}
+
+.brand-name-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.brand-title-text {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 70%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1.15;
+}
+
+[data-theme="light"] .brand-title-text {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 70%, #475569 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-subtitle-badge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-current);
+  opacity: 0.9;
 }
 
 .header-actions {
@@ -303,28 +339,42 @@
 }
 
 .cloud-sync-btn {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-md);
-  padding: 0.45rem 0.75rem;
+  padding: 0.48rem 0.85rem;
   font-size: 0.82rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-main);
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
 }
 
 .cloud-sync-btn:hover {
-  background: var(--bg-card-hover);
+  background: rgba(255, 255, 255, 0.14);
+  border-color: var(--accent-current);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+}
+
+[data-theme="light"] .cloud-sync-btn {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+}
+
+[data-theme="light"] .cloud-sync-btn:hover {
+  background: #f8fafc;
   border-color: var(--accent-current);
 }
 
 .cloud-sync-btn.syncing .sync-icon {
   display: inline-block;
-  animation: spinSync 1s linear infinite;
+  animation: spinSync 0.9s linear infinite;
 }
 
 @keyframes spinSync {
@@ -332,62 +382,76 @@
   to { transform: rotate(360deg); }
 }
 
-.theme-toggle-btn {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 0.45rem 0.75rem;
-  font-size: 1.1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--text-main);
-  transition: all 0.2s ease;
-}
-
-.theme-toggle-btn:hover {
-  background: var(--bg-hover);
-  border-color: var(--accent-current);
-}
-
-/* Paper Switcher (Paper 1 vs Paper 2) */
+/* Paper Switcher (Paper 1 vs Paper 2) - Segmented Control */
 .paper-switcher {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.35rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-md);
-  padding: 0.25rem;
+  padding: 0.28rem;
   margin-bottom: 0.65rem;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="light"] .paper-switcher {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .paper-tab-btn {
-  padding: 0.55rem 0.5rem;
+  padding: 0.58rem 0.5rem;
   font-size: 0.88rem;
   font-weight: 700;
   border-radius: var(--radius-sm);
   color: var(--text-sub);
   text-align: center;
-  transition: all 0.2s ease;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.paper-tab-btn:hover:not(.active) {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="light"] .paper-tab-btn:hover:not(.active) {
+  background: #ffffff;
+  color: #0f172a;
 }
 
 .paper-tab-btn.active {
-  background: var(--accent-current);
+  background: linear-gradient(135deg, var(--accent-current) 0%, #6366f1 100%);
   color: #ffffff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35);
+  transform: scale(1.01);
+}
+
+.paper-2-theme .paper-tab-btn.active {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
 }
 
 /* 5 Main Tabs: Units, Theory, Tricks, Questions, Notepad */
 .nav-tabs-bar {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 0.25rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  gap: 0.3rem;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-md);
-  padding: 0.25rem;
+  padding: 0.28rem;
+}
+
+[data-theme="light"] .nav-tabs-bar {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
 }
 
 .tab-btn {
@@ -395,23 +459,48 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.15rem;
-  padding: 0.55rem 0.25rem;
-  font-size: 0.8rem;
+  gap: 0.2rem;
+  padding: 0.55rem 0.2rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: var(--text-sub);
   border-radius: var(--radius-sm);
-  transition: all 0.2s ease;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .tab-btn .tab-icon {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.tab-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-1.5px);
+}
+
+.tab-btn:hover .tab-icon {
+  transform: scale(1.18);
+}
+
+[data-theme="light"] .tab-btn:hover {
+  background: #ffffff;
+  color: #0f172a;
 }
 
 .tab-btn.active {
-  background: var(--bg-hover);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%);
+  color: #ffffff;
+  border-bottom: 2.5px solid var(--accent-current);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] .tab-btn.active {
+  background: #ffffff;
   color: var(--text-main);
-  border-bottom: 2px solid var(--accent-current);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  border-bottom-color: var(--accent-current);
 }
 
 /* Unit Filter & Search Controls (Sticky / Sub-header for Theory & Tricks) */
