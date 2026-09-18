@@ -820,9 +820,11 @@ class AppController {
       }
     });
 
-    // Filter Bar visibility
-    const showFilterBar = state.activeSection === "theory" || state.activeSection === "tricks" || state.activeSection === "questions";
-    this.filterBar.style.display = showFilterBar ? "flex" : "none";
+    // Filter Bar visibility (Units, Theory, Tricks, Questions)
+    const showFilterBar = state.activeSection === "units" || state.activeSection === "theory" || state.activeSection === "tricks" || state.activeSection === "questions";
+    if (this.filterBar) {
+      this.filterBar.style.display = showFilterBar ? "flex" : "none";
+    }
 
     // Sections visibility
     this.unitsSection.style.display = state.activeSection === "units" ? "flex" : "none";
