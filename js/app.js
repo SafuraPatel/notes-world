@@ -1165,6 +1165,76 @@ class AppController {
     `;
   }
 
+  formatMnemonicCard(mnemonic, explanation, colorTheme) {
+    const rawMnemonic = (mnemonic || "").trim();
+    const rawExplanation = (explanation || "").trim();
+
+    // 1. Separate hook vs catchphrase if colon or quotes present
+    let hook = "";
+    let phrase = "";
+
+    const colonIdx = rawMnemonic.indexOf(":");
+    if (colonIdx > 0 && colonIdx < rawMnemonic.length - 1) {
+      hook = rawMnemonic.substring(0, colonIdx).trim();
+      phrase = rawMnemonic.substring(colonIdx + 1).trim();
+      if ((phrase.startsWith("'") && phrase.endsWith("'")) || (phrase.startsWith('"') && phrase.endsWith('"'))) {
+        phrase = phrase.substring(1, phrase.length - 1).trim();
+      }
+    } else {
+      hook = rawMnemonic;
+    }
+
+    // 2. Parse structured steps (→ or ->) or pairwise key-value logic (| or =)
+    let explanationHtml = "";
+    const hasArrow = rawExplanation.includes("→") || rawExplanation.includes("->");
+    const hasPipe = rawExplanation.includes("|");
+
+    if (hasArrow) {
+      const steps = rawExplanation.split(/→|->/).map(s => s.trim().replace(/\.$/, "")).filter(Boolean);
+      if (steps.length > 1) {
+        const stepChips = steps.map((st, i) => `
+          <div class="trick-step-chip">
+            <span class="step-num">${i + 1}</span>
+            <span class="step-text">${escapeHtml(st)}</span>
+          </div>
+        `).join('<span class="trick-flow-arrow">➔</span>');
+        explanationHtml = `<div class="trick-flow-steps">${stepChips}</div>`;
+      }
+    } else if (hasPipe) {
+      const pairs = rawExplanation.split("|").map(s => s.trim().replace(/\.$/, "")).filter(Boolean);
+      if (pairs.length > 1) {
+        const pairChips = pairs.map(pair => {
+          if (pair.includes("=")) {
+            const [k, v] = pair.split("=").map(s => s.trim());
+            return `
+              <div class="trick-pair-chip">
+                <span class="pair-key">${escapeHtml(k)}</span>
+                <span class="pair-arrow">➔</span>
+                <span class="pair-val">${escapeHtml(v)}</span>
+              </div>
+            `;
+          }
+          return `<div class="trick-pair-chip"><span class="pair-val">${escapeHtml(pair)}</span></div>`;
+        }).join("");
+        explanationHtml = `<div class="trick-pair-grid">${pairChips}</div>`;
+      }
+    }
+
+    if (!explanationHtml) {
+      explanationHtml = `<div class="mnemonic-desc">${escapeHtml(rawExplanation)}</div>`;
+    }
+
+    return `
+      <div class="mnemonic-box">
+        <div class="mnemonic-top-row">
+          <span class="mnemonic-hook-badge">💡 ${escapeHtml(hook)}</span>
+          ${phrase ? `<div class="mnemonic-catchphrase">"${escapeHtml(phrase)}"</div>` : ""}
+        </div>
+        ${explanationHtml}
+      </div>
+    `;
+  }
+
   renderTricksSection(paperData) {
     const state = store.getState();
     let unitsList = paperData.units;
@@ -1210,10 +1280,14 @@ class AppController {
       return;
     }
 
+    const trickThemes = ["cyan", "violet", "emerald", "amber", "rose", "indigo", "teal", "fuchsia"];
     let html = "";
-    allTricks.forEach(tr => {
+    allTricks.forEach((tr, trIdx) => {
+      const colorTheme = trickThemes[trIdx % trickThemes.length];
+      const mnemonicHtml = this.formatMnemonicCard(tr.mnemonic, tr.explanation, colorTheme);
+
       html += `
-        <div class="trick-card" data-trick-id="${tr.id}">
+        <div class="trick-card theme-${colorTheme}" data-trick-id="${tr.id}">
           <div class="trick-header">
             <div>
               <span class="trick-unit-tag">Unit ${tr.unitNumber}: ${escapeHtml(tr.unitName)}</span>
@@ -1232,16 +1306,15 @@ class AppController {
             </div>
           </div>
 
-          <div class="mnemonic-box">
-            <span class="mnemonic-badge">High-Yield Mnemonic</span>
-            <div class="mnemonic-text">${escapeHtml(tr.mnemonic)}</div>
-            <div class="mnemonic-desc">${escapeHtml(tr.explanation)}</div>
-          </div>
+          ${mnemonicHtml}
 
           ${tr.proTip ? `
             <div class="trick-tip">
-              <span>⚡ Tip:</span>
-              <span>${escapeHtml(tr.proTip)}</span>
+              <span class="trick-tip-icon">⚡</span>
+              <div class="trick-tip-content">
+                <strong class="trick-tip-title">Exam Pro-Tip:</strong>
+                <span class="trick-tip-text">${escapeHtml(tr.proTip)}</span>
+              </div>
             </div>
           ` : ""}
         </div>
@@ -1254,8 +1327,15 @@ class AppController {
     this.tricksContainer.querySelectorAll(".copy-trick-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         const text = btn.getAttribute("data-text");
+        const originalHtml = btn.innerHTML;
         navigator.clipboard.writeText(text).then(() => {
+          btn.innerHTML = "✓ Copied!";
+          btn.classList.add("copied");
           showToast("Mnemonic copied to clipboard!", "success");
+          setTimeout(() => {
+            btn.innerHTML = originalHtml;
+            btn.classList.remove("copied");
+          }, 1800);
         }).catch(() => {
           showToast("Copied!", "success");
         });
