@@ -81,6 +81,7 @@ class AppController {
     this.btnPaper1 = document.getElementById("btnPaper1");
     this.btnPaper2 = document.getElementById("btnPaper2");
     this.cloudSyncBtn = document.getElementById("cloudSyncBtn");
+    this.stickyCloudSyncBtn = document.getElementById("stickyCloudSyncBtn");
     this.syncStatusText = document.getElementById("syncStatusText");
     this.themeToggleBtn = document.getElementById("themeToggleBtn");
     this.themeIcon = document.getElementById("themeIcon");
