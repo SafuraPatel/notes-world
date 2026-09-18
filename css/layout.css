@@ -69,7 +69,6 @@
 }
 
 .brand-title {
-  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.42rem;
@@ -78,44 +77,10 @@
   user-select: none;
   padding: 0.12rem 0.25rem;
   border-radius: 10px;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Ambient Smooth Silk Aura Glow Behind Notes World */
-.brand-title::before {
-  content: "";
-  position: absolute;
-  inset: -1px -2px;
-  background: radial-gradient(ellipse at center, rgba(129, 140, 248, 0.28) 0%, rgba(192, 132, 252, 0.16) 45%, transparent 75%);
-  border-radius: 12px;
-  filter: blur(8px);
-  pointer-events: none;
-  opacity: 0.75;
-  transition: opacity 0.35s ease, transform 0.35s ease;
-  z-index: 0;
-}
-
-.paper-2-theme .brand-title::before {
-  background: radial-gradient(ellipse at center, rgba(16, 185, 129, 0.3) 0%, rgba(6, 182, 212, 0.16) 45%, transparent 75%);
-}
-
-.brand-title:hover::before {
-  opacity: 1;
-  transform: scale(1.05);
-}
-
-[data-theme="light"] .brand-title::before {
-  background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.14) 0%, rgba(217, 70, 239, 0.08) 45%, transparent 75%);
-}
-
-[data-theme="light"].paper-2-theme .brand-title::before,
-[data-theme="light"] .paper-2-theme .brand-title::before {
-  background: radial-gradient(ellipse at center, rgba(5, 150, 105, 0.14) 0%, rgba(2, 132, 199, 0.08) 45%, transparent 75%);
+  background: transparent !important;
 }
 
 .brand-logo-badge {
-  position: relative;
-  z-index: 1;
   font-size: 1.25rem;
   line-height: 1;
   display: inline-flex;
@@ -129,45 +94,59 @@
   transform: rotate(-10deg) scale(1.15);
 }
 
-/* Very Attractive and Ultra-Smooth Satin Gradient for Notes World */
+/* Beautiful, 100% Reliable, Smooth & Vibrant Notes World Brand Text */
 .brand-title-text {
-  position: relative;
-  z-index: 1;
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 1.22rem;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 1.25rem;
   font-weight: 800;
-  letter-spacing: -0.03em;
-  background: linear-gradient(135deg, #60a5fa 0%, #818cf8 32%, #c084fc 65%, #f472b6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 2px 6px rgba(99, 102, 241, 0.35));
+  letter-spacing: -0.025em;
   white-space: nowrap;
   line-height: 1.2;
-  transition: filter 0.3s ease;
+  display: inline-block;
+  /* Guaranteed Solid Text Colors - NEVER turns into a solid bar or transparent box */
+  color: #c084fc; /* Vibrant smooth lilac-violet for Paper 1 */
+  text-shadow: 0 0 16px rgba(192, 132, 252, 0.5), 0 2px 6px rgba(0, 0, 0, 0.4);
+  transition: color 0.3s ease, text-shadow 0.3s ease;
 }
 
 .brand-title:hover .brand-title-text {
-  filter: drop-shadow(0 2px 10px rgba(129, 140, 248, 0.55));
+  color: #d8b4fe;
+  text-shadow: 0 0 22px rgba(192, 132, 252, 0.7), 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
+/* Paper 2 Theme - Smooth, Fresh Emerald Mint */
 .paper-2-theme .brand-title-text {
-  background: linear-gradient(135deg, #34d399 0%, #10b981 35%, #06b6d4 70%, #38bdf8 100%);
-  filter: drop-shadow(0 2px 6px rgba(16, 185, 129, 0.35));
+  color: #34d399; /* Vibrant smooth emerald-mint for Paper 2 */
+  text-shadow: 0 0 16px rgba(52, 211, 153, 0.5), 0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
 .paper-2-theme .brand-title:hover .brand-title-text {
-  filter: drop-shadow(0 2px 10px rgba(16, 185, 129, 0.55));
+  color: #6ee7b7;
+  text-shadow: 0 0 22px rgba(52, 211, 153, 0.7), 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
+/* Light Theme Paper 1 - Smooth Royal Indigo */
 [data-theme="light"] .brand-title-text {
-  background: linear-gradient(135deg, #4338ca 0%, #6366f1 35%, #7c3aed 70%, #db2777 100%);
-  filter: drop-shadow(0 1px 3px rgba(99, 102, 241, 0.25));
+  color: #6366f1;
+  text-shadow: 0 1px 3px rgba(99, 102, 241, 0.3);
 }
 
+[data-theme="light"] .brand-title:hover .brand-title-text {
+  color: #4f46e5;
+  text-shadow: 0 2px 8px rgba(99, 102, 241, 0.45);
+}
+
+/* Light Theme Paper 2 - Smooth Deep Jade */
 [data-theme="light"].paper-2-theme .brand-title-text,
 [data-theme="light"] .paper-2-theme .brand-title-text {
-  background: linear-gradient(135deg, #065f46 0%, #059669 35%, #0284c7 70%, #0f766e 100%);
-  filter: drop-shadow(0 1px 3px rgba(5, 150, 105, 0.25));
+  color: #059669;
+  text-shadow: 0 1px 3px rgba(5, 150, 105, 0.3);
+}
+
+[data-theme="light"].paper-2-theme .brand-title:hover .brand-title-text,
+[data-theme="light"] .paper-2-theme .brand-title:hover .brand-title-text {
+  color: #047857;
+  text-shadow: 0 2px 8px rgba(5, 150, 105, 0.45);
 }
 
 /* Paper Switcher Pill (P1 / P2) */
