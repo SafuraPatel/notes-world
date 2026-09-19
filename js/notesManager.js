@@ -175,9 +175,36 @@ export class NotesManager {
     return note;
   }
 
+  findNoteByTitle(paperId, title, excludeNoteId = null) {
+    if (!title) return null;
+    const clean = title.trim().toLowerCase();
+    return this.notes.find(n => {
+      if (excludeNoteId && n.id === excludeNoteId) return false;
+      if (paperId && n.paper !== paperId) return false;
+      return (n.title || "").trim().toLowerCase() === clean;
+    }) || null;
+  }
+
   deleteNote(id) {
-    this.notes = this.notes.filter(n => n.id !== id);
+    const idx = this.notes.findIndex(n => n.id === id);
+    if (idx !== -1) {
+      const [deleted] = this.notes.splice(idx, 1);
+      this.saveToStorage();
+      return deleted;
+    }
+    return null;
+  }
+
+  restoreNote(noteData) {
+    if (!noteData) return false;
+    const existingIdx = this.notes.findIndex(n => n.id === noteData.id);
+    if (existingIdx !== -1) {
+      this.notes[existingIdx] = noteData;
+    } else {
+      this.notes.unshift(noteData);
+    }
     this.saveToStorage();
+    return true;
   }
 }
 

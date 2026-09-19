@@ -66,6 +66,20 @@ exports.handler = async (event, context) => {
         };
       }
 
+      if (type === "bin") {
+        let binData = null;
+        if (blobStore) {
+          binData = await blobStore.get("recycle_bin", { type: "json" });
+        } else {
+          binData = memoryStore.get("recycle_bin") || [];
+        }
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ success: true, bin: binData || [] })
+        };
+      }
+
       if (paper === "paper1" || paper === "paper2") {
         let paperData = null;
         if (blobStore) {
@@ -83,7 +97,7 @@ exports.handler = async (event, context) => {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ success: false, message: "Specify ?paper=paper1 or ?type=notes" })
+        body: JSON.stringify({ success: false, message: "Specify ?paper=paper1, ?type=notes, or ?type=bin" })
       };
     } catch (err) {
       console.error("GET Error:", err);
@@ -110,6 +124,19 @@ exports.handler = async (event, context) => {
           statusCode: 200,
           headers,
           body: JSON.stringify({ success: true, message: "Notes saved to Cloud DB" })
+        };
+      }
+
+      if (body.type === "bin") {
+        if (blobStore) {
+          await blobStore.setJSON("recycle_bin", body.bin);
+        } else {
+          memoryStore.set("recycle_bin", body.bin);
+        }
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ success: true, message: "Recycle bin saved to Cloud DB" })
         };
       }
 

@@ -8,6 +8,7 @@ import { store } from "./store.js";
 import { notesManager } from "./notesManager.js";
 import { dataManager } from "./dataManager.js";
 import { questionsManager } from "./questionsManager.js";
+import { binManager } from "./binManager.js";
 import { RichEditor } from "./richEditor.js";
 
 // Toast Notification
@@ -145,11 +146,28 @@ class AppController {
     this.btnHeaderAddTheory = document.getElementById("btnHeaderAddTheory");
     this.btnHeaderAddTrick = document.getElementById("btnHeaderAddTrick");
 
+    // Bin Elements
+    this.tabBinCountBadge = document.getElementById("tabBinCountBadge");
+    this.binSection = document.getElementById("binSection");
+    this.binCountBadge = document.getElementById("binCountBadge");
+    this.btnEmptyBin = document.getElementById("btnEmptyBin");
+    this.binSearchInput = document.getElementById("binSearchInput");
+    this.binItemsContainer = document.getElementById("binItemsContainer");
+    this.binTypeFilter = "all";
+    this.binSearchQuery = "";
+
     // Modals & Overlay
     this.modalOverlay = document.getElementById("modalOverlay");
     this.theoryModal = document.getElementById("theoryModal");
     this.trickModal = document.getElementById("trickModal");
     this.mindMapModal = document.getElementById("mindMapModal");
+
+    // Duplicate Topic Prompt Modal
+    this.duplicateTopicModal = document.getElementById("duplicateTopicModal");
+    this.duplicateModalMessage = document.getElementById("duplicateModalMessage");
+    this.btnCloseDuplicateModal = document.getElementById("btnCloseDuplicateModal");
+    this.btnCancelDuplicateModal = document.getElementById("btnCancelDuplicateModal");
+    this.btnConfirmDuplicateUpdate = document.getElementById("btnConfirmDuplicateUpdate");
 
     // Theory Modal elements
     this.theoryModalTitle = document.getElementById("theoryModalTitle");
@@ -274,7 +292,9 @@ class AppController {
   isAnyModalOpen() {
     return (this.theoryModal && this.theoryModal.style.display === "flex") ||
            (this.trickModal && this.trickModal.style.display === "flex") ||
-           (this.noteModal && this.noteModal.style.display === "flex");
+           (this.noteModal && this.noteModal.style.display === "flex") ||
+           (this.mindMapModal && this.mindMapModal.style.display === "flex") ||
+           (this.duplicateTopicModal && this.duplicateTopicModal.style.display === "flex");
   }
 
   pushModalState(modalName) {
@@ -319,7 +339,8 @@ class AppController {
       theory: "Theory",
       tricks: "Tricks",
       questions: "Questions",
-      notepad: "Notepad"
+      notepad: "Notepad",
+      bin: "Recycle Bin"
     };
     const sectionName = sectionLabels[state.activeSection] || state.activeSection;
 
@@ -533,6 +554,94 @@ class AppController {
       });
     }
 
+    // Duplicate Modal Actions
+    if (this.btnCloseDuplicateModal) {
+      this.btnCloseDuplicateModal.addEventListener("click", () => {
+        this.closeDuplicateModal();
+        if (this._onDuplicateCancel) this._onDuplicateCancel();
+      });
+    }
+    if (this.btnCancelDuplicateModal) {
+      this.btnCancelDuplicateModal.addEventListener("click", () => {
+        this.closeDuplicateModal();
+        if (this._onDuplicateCancel) this._onDuplicateCancel();
+      });
+    }
+    if (this.btnConfirmDuplicateUpdate) {
+      this.btnConfirmDuplicateUpdate.addEventListener("click", () => {
+        this.closeDuplicateModal();
+        if (this._onDuplicateConfirm) this._onDuplicateConfirm();
+      });
+    }
+
+    // Check duplicate when topic title input loses focus (blur)
+    if (this.theoryModalTopicTitle) {
+      this.theoryModalTopicTitle.addEventListener("blur", () => {
+        const title = this.theoryModalTopicTitle.value.trim();
+        const topicId = this.theoryModalTopicId.value;
+        if (!title || topicId) return;
+
+        const state = store.getState();
+        const existing = dataManager.findTheoryTopicByTitle(state.activePaper, title);
+        if (existing) {
+          this.showDuplicateTopicPrompt({
+            title,
+            unitTitle: existing.unit.name || existing.unit.title,
+            onConfirmUpdate: () => {
+              this.openEditTheoryModal(existing.topic.id);
+              showToast(`Loaded "${existing.topic.title}" for editing.`, "info");
+            },
+            onCancel: () => {
+              this.theoryModalTopicTitle.focus();
+              this.theoryModalTopicTitle.select();
+            }
+          });
+        }
+      });
+    }
+
+    // Bin: Empty Bin Button
+    if (this.btnEmptyBin) {
+      this.btnEmptyBin.addEventListener("click", () => {
+        const state = store.getState();
+        const count = binManager.getCount(state.activePaper);
+        if (count === 0) {
+          showToast("Recycle Bin is already empty.", "info");
+          return;
+        }
+        if (confirm(`Permanently delete all ${count} item(s) from the Recycle Bin? This action cannot be undone.`)) {
+          binManager.emptyBin(state.activePaper);
+          showToast("Recycle Bin emptied.", "info");
+        }
+      });
+    }
+
+    // Bin: Filter Pills
+    document.querySelectorAll(".bin-filter-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".bin-filter-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        this.binTypeFilter = btn.getAttribute("data-filter");
+        this.renderBinSection();
+      });
+    });
+
+    // Bin: Live Search Input
+    if (this.binSearchInput) {
+      this.binSearchInput.addEventListener("input", (e) => {
+        this.binSearchQuery = e.target.value.trim();
+        this.renderBinSection();
+      });
+    }
+
+    // Subscribe to BinManager changes
+    binManager.subscribe(() => {
+      this.updateBinBadge();
+      if (store.getState().activeSection === "bin") {
+        this.renderBinSection();
+      }
+    });
+
     // Escape key closes modals and header dropdown
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
@@ -566,9 +675,10 @@ class AppController {
     if (this.stickyCloudSyncBtn) this.stickyCloudSyncBtn.classList.add("syncing");
     if (this.syncStatusText) this.syncStatusText.textContent = "Syncing...";
     try {
-      const [notesUpdated, dataUpdated] = await Promise.all([
+      const [notesUpdated, dataUpdated, binUpdated] = await Promise.all([
         notesManager.syncFromCloud(),
-        dataManager.syncFromCloud()
+        dataManager.syncFromCloud(),
+        binManager.syncFromCloud()
       ]);
       if (this.cloudSyncBtn) this.cloudSyncBtn.classList.remove("syncing");
       if (this.stickyCloudSyncBtn) this.stickyCloudSyncBtn.classList.remove("syncing");
@@ -600,11 +710,33 @@ class AppController {
     if (this.trickModal) this.trickModal.style.display = "none";
     if (this.noteModal) this.noteModal.style.display = "none";
     if (this.mindMapModal) this.mindMapModal.style.display = "none";
+    if (this.duplicateTopicModal) this.duplicateTopicModal.style.display = "none";
 
     if (triggerHistoryBack && window.history.state && window.history.state.isModal) {
       this._ignoreNextPopstate = true;
       window.history.back();
     }
+  }
+
+  closeDuplicateModal() {
+    if (this.duplicateTopicModal) this.duplicateTopicModal.style.display = "none";
+    if ((!this.theoryModal || this.theoryModal.style.display === "none") &&
+        (!this.trickModal || this.trickModal.style.display === "none") &&
+        (!this.noteModal || this.noteModal.style.display === "none")) {
+      if (this.modalOverlay) this.modalOverlay.style.display = "none";
+    }
+  }
+
+  showDuplicateTopicPrompt({ title, unitTitle, onConfirmUpdate, onCancel }) {
+    this._onDuplicateConfirm = onConfirmUpdate;
+    this._onDuplicateCancel = onCancel;
+
+    if (this.duplicateModalMessage) {
+      this.duplicateModalMessage.innerHTML = `The topic <strong>"${escapeHtml(title)}"</strong> already exists in <em>${escapeHtml(unitTitle)}</em>.<br><br>Would you like to update this existing topic?`;
+    }
+
+    if (this.modalOverlay) this.modalOverlay.style.display = "block";
+    if (this.duplicateTopicModal) this.duplicateTopicModal.style.display = "flex";
   }
 
   populateModalUnitOptions(selectElement, defaultUnitId) {
@@ -675,6 +807,25 @@ class AppController {
 
     if (!title || !content) {
       showToast("Please enter title and theory content!", "info");
+      return;
+    }
+
+    // Check duplicate topic title
+    const existing = dataManager.findTheoryTopicByTitle(state.activePaper, title, topicId || null);
+    if (existing) {
+      this.showDuplicateTopicPrompt({
+        title,
+        unitTitle: existing.unit.name || existing.unit.title,
+        onConfirmUpdate: () => {
+          dataManager.updateTheoryTopic(state.activePaper, existing.topic.id, { title, content });
+          showToast(`Topic "${title}" updated successfully!`, "success");
+          this.closeAllModals();
+        },
+        onCancel: () => {
+          this.theoryModalTopicTitle.focus();
+          showToast("Duplicate prevented. Please choose a different topic name.", "info");
+        }
+      });
       return;
     }
 
@@ -749,6 +900,27 @@ class AppController {
     if (!title || !mnemonic || !explanation) {
       showToast("Please enter title, mnemonic, and explanation!", "info");
       return;
+    }
+
+    // Check duplicate trick
+    if (!trickId) {
+      const existingTrick = dataManager.findTrickByTitle(state.activePaper, title);
+      if (existingTrick) {
+        this.showDuplicateTopicPrompt({
+          title,
+          unitTitle: existingTrick.unit.name || existingTrick.unit.title,
+          onConfirmUpdate: () => {
+            dataManager.updateTrick(state.activePaper, existingTrick.trick.id, { title, lightbulb, mnemonic, explanation, proTip });
+            showToast(`Trick "${title}" updated successfully!`, "success");
+            this.closeAllModals();
+          },
+          onCancel: () => {
+            this.trickModalTitleInput.focus();
+            showToast("Please choose a different trick title.", "info");
+          }
+        });
+        return;
+      }
     }
 
     if (trickId) {
@@ -855,6 +1027,24 @@ class AppController {
     const state = store.getState();
     const unitId = unitSelect.value;
     const unitName = unitSelect.options[unitSelect.selectedIndex]?.text || "General";
+
+    // Duplicate check for study point
+    const existingNote = notesManager.findNoteByTitle(state.activePaper, title);
+    if (existingNote) {
+      this.showDuplicateTopicPrompt({
+        title,
+        unitTitle: existingNote.unitName,
+        onConfirmUpdate: () => {
+          this.openEditNoteModal(existingNote.id);
+          showToast(`Loaded "${existingNote.title}" for editing.`, "info");
+        },
+        onCancel: () => {
+          titleInput.focus();
+          showToast("Please choose a different point title.", "info");
+        }
+      });
+      return;
+    }
 
     notesManager.addNote({
       paper: state.activePaper,
@@ -1113,6 +1303,9 @@ class AppController {
     this.tricksSection.style.display = state.activeSection === "tricks" ? "flex" : "none";
     this.questionsSection.style.display = state.activeSection === "questions" ? "flex" : "none";
     this.notepadSection.style.display = state.activeSection === "notepad" ? "flex" : "none";
+    if (this.binSection) {
+      this.binSection.style.display = state.activeSection === "bin" ? "flex" : "none";
+    }
 
     // Render Sub-components
     this.renderUnitDropdownOptions(paperData);
@@ -1123,6 +1316,10 @@ class AppController {
     this.updateQuestionsBadge();
     this.renderNotepadSection();
     this.updateNotesBadge();
+    this.updateBinBadge();
+    if (state.activeSection === "bin") {
+      this.renderBinSection();
+    }
   }
 
   renderUnitDropdownOptions(paperData) {
@@ -1375,9 +1572,20 @@ class AppController {
     this.theoryCardsContainer.querySelectorAll(".btn-delete-theory").forEach(btn => {
       btn.addEventListener("click", () => {
         const topicId = btn.getAttribute("data-topic-id");
-        if (confirm("Are you sure you want to delete this theory topic?")) {
-          dataManager.deleteTheoryTopic(state.activePaper, topicId);
-          showToast("Theory topic deleted.", "info");
+        if (confirm("Move this theory topic to Recycle Bin?")) {
+          const deleted = dataManager.deleteTheoryTopic(state.activePaper, topicId);
+          if (deleted) {
+            binManager.addItem({
+              type: "theory",
+              typeName: "Theory Topic",
+              paper: state.activePaper,
+              unitId: deleted.unit.id,
+              unitName: deleted.unit.name || deleted.unit.title,
+              title: deleted.topic.title,
+              data: deleted.topic
+            });
+            showToast(`Moved "${deleted.topic.title}" to Recycle Bin.`, "info");
+          }
         }
       });
     });
@@ -1665,9 +1873,20 @@ class AppController {
     this.tricksContainer.querySelectorAll(".btn-delete-trick").forEach(btn => {
       btn.addEventListener("click", () => {
         const trickId = btn.getAttribute("data-trick-id");
-        if (confirm("Are you sure you want to delete this trick?")) {
-          dataManager.deleteTrick(state.activePaper, trickId);
-          showToast("Trick deleted.", "info");
+        if (confirm("Move this trick to Recycle Bin?")) {
+          const deleted = dataManager.deleteTrick(state.activePaper, trickId);
+          if (deleted) {
+            binManager.addItem({
+              type: "trick",
+              typeName: "Short Trick",
+              paper: state.activePaper,
+              unitId: deleted.unit.id,
+              unitName: deleted.unit.name || deleted.unit.title,
+              title: deleted.trick.title,
+              data: deleted.trick
+            });
+            showToast(`Moved "${deleted.trick.title}" to Recycle Bin.`, "info");
+          }
         }
       });
     });
@@ -1739,9 +1958,20 @@ class AppController {
     this.userNotesGrid.querySelectorAll(".btn-delete-point").forEach(btn => {
       btn.addEventListener("click", () => {
         const id = btn.getAttribute("data-id");
-        if (confirm("Delete this point?")) {
-          notesManager.deleteNote(id);
-          showToast("Point deleted", "info");
+        if (confirm("Move this study point to Recycle Bin?")) {
+          const deleted = notesManager.deleteNote(id);
+          if (deleted) {
+            binManager.addItem({
+              type: "note",
+              typeName: "Notepad Point",
+              paper: deleted.paper || state.activePaper,
+              unitId: deleted.unitId,
+              unitName: deleted.unitName,
+              title: deleted.title,
+              data: deleted
+            });
+            showToast(`Moved "${deleted.title}" to Recycle Bin.`, "info");
+          }
         }
       });
     });
@@ -1753,6 +1983,129 @@ class AppController {
     if (this.notesCountBadge) {
       this.notesCountBadge.textContent = `${count} Points`;
     }
+  }
+
+  // --- RECYCLE BIN CONTROLLER ---
+
+  renderBinSection() {
+    if (!this.binItemsContainer) return;
+    const state = store.getState();
+
+    const items = binManager.getItems({
+      paper: state.activePaper,
+      type: this.binTypeFilter || "all",
+      searchQuery: this.binSearchQuery || ""
+    });
+
+    this.updateBinBadge();
+
+    if (items.length === 0) {
+      let emptyMsg = "Items you delete from Theory, Tricks, or Notepad will safely appear here.";
+      if (this.binSearchQuery || (this.binTypeFilter && this.binTypeFilter !== "all")) {
+        emptyMsg = "No deleted items match your search or filter.";
+      }
+      this.binItemsContainer.innerHTML = `
+        <div class="bin-empty-state">
+          <div class="bin-empty-icon">🗑️</div>
+          <div class="bin-empty-title">Recycle Bin is Empty</div>
+          <div class="bin-empty-desc">${emptyMsg}</div>
+        </div>
+      `;
+      return;
+    }
+
+    let html = "";
+    items.forEach(it => {
+      const dateStr = this.formatRelativeTime(it.deletedAt);
+      const paperBadge = it.paper === "paper1" ? "P1" : "P2";
+
+      let preview = "";
+      if (it.data) {
+        if (it.data.content) {
+          preview = it.data.content.replace(/<[^>]*>/g, " ").trim();
+        } else if (it.data.points && Array.isArray(it.data.points)) {
+          preview = it.data.points.join(" • ");
+        } else if (it.data.mnemonic || it.data.explanation) {
+          preview = (it.data.mnemonic ? `💡 ${it.data.mnemonic} ` : "") + (it.data.explanation ? it.data.explanation.replace(/<[^>]*>/g, " ") : "");
+        }
+      }
+      if (!preview) preview = "No preview content available.";
+
+      html += `
+        <div class="bin-card" data-bin-id="${it.id}">
+          <div class="bin-card-header">
+            <div class="bin-card-tags">
+              <span class="bin-type-pill ${it.type}">${escapeHtml(it.typeName || it.type)}</span>
+              <span class="bin-paper-pill">${paperBadge}</span>
+              ${it.unitName ? `<span class="bin-unit-pill" title="${escapeHtml(it.unitName)}">${escapeHtml(it.unitName)}</span>` : ""}
+            </div>
+            <span class="bin-deleted-time" title="${escapeHtml(new Date(it.deletedAt).toLocaleString())}">🕒 ${dateStr}</span>
+          </div>
+
+          <h4 class="bin-card-title">${escapeHtml(it.title)}</h4>
+          <div class="bin-card-preview">${escapeHtml(preview)}</div>
+
+          <div class="bin-card-actions">
+            <button class="btn-bin-delete" data-bin-id="${it.id}" type="button" title="Permanently Delete">
+              🗑️ Delete Forever
+            </button>
+            <button class="btn-bin-restore" data-bin-id="${it.id}" type="button" title="Restore to original unit">
+              ↺ Restore
+            </button>
+          </div>
+        </div>
+      `;
+    });
+
+    this.binItemsContainer.innerHTML = html;
+
+    // Attach Restore listeners
+    this.binItemsContainer.querySelectorAll(".btn-bin-restore").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const binId = btn.getAttribute("data-bin-id");
+        const restored = binManager.restoreItem(binId);
+        if (restored) {
+          showToast(`Restored "${restored.title}" successfully!`, "success");
+        }
+      });
+    });
+
+    // Attach Permanent Delete listeners
+    this.binItemsContainer.querySelectorAll(".btn-bin-delete").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const binId = btn.getAttribute("data-bin-id");
+        const item = items.find(i => i.id === binId);
+        const name = item ? item.title : "this item";
+        if (confirm(`Permanently delete "${name}"? This cannot be undone.`)) {
+          binManager.deletePermanently(binId);
+          showToast("Item permanently deleted.", "info");
+        }
+      });
+    });
+  }
+
+  updateBinBadge() {
+    const state = store.getState();
+    const count = binManager.getCount(state.activePaper);
+    if (this.tabBinCountBadge) {
+      this.tabBinCountBadge.textContent = `(${count})`;
+    }
+    if (this.binCountBadge) {
+      this.binCountBadge.textContent = `${count} ${count === 1 ? "Item" : "Items"}`;
+    }
+  }
+
+  formatRelativeTime(isoString) {
+    if (!isoString) return "";
+    const diffMs = Date.now() - new Date(isoString).getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return new Date(isoString).toLocaleDateString(undefined, { month: "short", day: "numeric" });
   }
 
   // --- QUESTIONS (PYQ) CONTROLLER ---

@@ -55,6 +55,12 @@ class NotesWorldHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps(response).encode("utf-8"))
                 return
 
+            if "type" in query and "bin" in query["type"]:
+                bin_items = db.get("recycle_bin", [])
+                response = {"success": True, "bin": bin_items}
+                self.wfile.write(json.dumps(response).encode("utf-8"))
+                return
+
             if "paper" in query:
                 paper = query["paper"][0]
                 paper_data = db.get(f"paper_data_{paper}", None)
@@ -62,7 +68,7 @@ class NotesWorldHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps(response).encode("utf-8"))
                 return
 
-            response = {"success": False, "message": "Specify ?paper=paper1 or ?type=notes"}
+            response = {"success": False, "message": "Specify ?paper=paper1 or ?type=notes or ?type=bin"}
             self.wfile.write(json.dumps(response).encode("utf-8"))
             return
 
@@ -89,6 +95,12 @@ class NotesWorldHandler(SimpleHTTPRequestHandler):
                 db["shared_notes"] = body.get("notes")
                 save_db(db)
                 self.wfile.write(json.dumps({"success": True, "message": "Notes saved to local DB"}).encode("utf-8"))
+                return
+
+            if body.get("type") == "bin":
+                db["recycle_bin"] = body.get("bin", [])
+                save_db(db)
+                self.wfile.write(json.dumps({"success": True, "message": "Recycle bin saved to local DB"}).encode("utf-8"))
                 return
 
             if body.get("paperId") and "data" in body:

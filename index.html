@@ -82,6 +82,10 @@
           <span class="tab-icon">📝</span>
           <span class="tab-label">Notepad</span>
         </button>
+        <button class="tab-btn" data-section="bin" type="button" role="tab" aria-label="Bin" title="Recycle Bin">
+          <span class="tab-icon">🗑️</span>
+          <span class="tab-label">Bin <span id="tabBinCountBadge">(0)</span></span>
+        </button>
       </nav>
     </header>
 
@@ -228,6 +232,44 @@
           </div>
         </div>
       </section>
+
+      <!-- 6. RECYCLE BIN SECTION -->
+      <section id="binSection" class="content-section" style="display: none;">
+        <div class="section-header">
+          <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+            <button class="btn-back-to-home" type="button" title="Back to Units (Home)">
+              ← Units
+            </button>
+            <h2 class="section-title">
+              <span>🗑️</span>
+              <span>Recycle Bin</span>
+            </h2>
+            <span id="binCountBadge" class="section-badge">0 Items</span>
+          </div>
+          <button id="btnEmptyBin" class="btn-danger-small" type="button" title="Empty all deleted items">
+            🗑️ Empty Bin
+          </button>
+        </div>
+
+        <!-- Bin Filter & Search Toolbar -->
+        <div class="bin-controls-bar">
+          <div class="bin-filter-pills" role="tablist">
+            <button class="bin-filter-btn active" data-filter="all" type="button">All Items</button>
+            <button class="bin-filter-btn" data-filter="theory" type="button">📖 Theory</button>
+            <button class="bin-filter-btn" data-filter="trick" type="button">💡 Tricks</button>
+            <button class="bin-filter-btn" data-filter="note" type="button">📝 Points</button>
+          </div>
+          <div class="bin-search-box">
+            <span class="search-icon">🔍</span>
+            <input type="search" id="binSearchInput" placeholder="Search deleted items..." autocomplete="off">
+          </div>
+        </div>
+
+        <!-- Bin Items Grid -->
+        <div id="binItemsContainer" class="bin-cards-grid">
+          <!-- Dynamically populated via JS -->
+        </div>
+      </section>
     </main>
 
     <!-- Modal Backdrop Overlay -->
@@ -370,6 +412,24 @@
           <button type="submit" class="btn-modal-save">💾 Save Mind Map</button>
         </div>
       </form>
+    </div>
+
+    <!-- 5. Duplicate Topic Warning & Action Modal -->
+    <div id="duplicateTopicModal" class="app-modal duplicate-confirm-modal" style="display: none;" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h3 class="modal-title">⚠️ Topic Already Exists</h3>
+        <button id="btnCloseDuplicateModal" class="modal-close-btn" type="button" aria-label="Close">✕</button>
+      </div>
+      <div class="duplicate-modal-body">
+        <div class="duplicate-icon-wrap">⚠️</div>
+        <p id="duplicateModalMessage" class="duplicate-modal-text">
+          A topic with this name already exists. Would you like to update the existing topic instead?
+        </p>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="btnCancelDuplicateModal" class="btn-modal-cancel">✖️ No, Keep Writing</button>
+        <button type="button" id="btnConfirmDuplicateUpdate" class="btn-modal-save">✏️ Yes, Update It</button>
+      </div>
     </div>
 
     <!-- Toast Notifications -->
