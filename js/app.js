@@ -1720,7 +1720,7 @@ class AppController {
           </div>
           <h4 class="saved-point-title">${escapeHtml(n.title)}</h4>
           <div class="saved-point-body">${n.content || ""}</div>
-          <div class="saved-point-footer">📅 ${timeStr}</div>
+          <div class="saved-point-footer">${timeStr}</div>
         </div>
       `;
     });
