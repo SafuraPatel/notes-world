@@ -8,6 +8,7 @@ import { store } from "./store.js";
 import { notesManager } from "./notesManager.js";
 import { dataManager } from "./dataManager.js";
 import { questionsManager } from "./questionsManager.js";
+import { RichEditor } from "./richEditor.js";
 
 // Toast Notification
 export function showToast(message, type = "info") {
@@ -38,6 +39,11 @@ function escapeHtml(str) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function escapeAttr(str) {
+  if (!str) return "";
+  return String(str).replace(/"/g, "&quot;");
 }
 
 function formatBulletText(rawText) {
@@ -143,6 +149,7 @@ class AppController {
     this.modalOverlay = document.getElementById("modalOverlay");
     this.theoryModal = document.getElementById("theoryModal");
     this.trickModal = document.getElementById("trickModal");
+    this.mindMapModal = document.getElementById("mindMapModal");
 
     // Theory Modal elements
     this.theoryModalTitle = document.getElementById("theoryModalTitle");
@@ -150,9 +157,16 @@ class AppController {
     this.theoryModalTopicId = document.getElementById("theoryModalTopicId");
     this.theoryModalUnitSelect = document.getElementById("theoryModalUnitSelect");
     this.theoryModalTopicTitle = document.getElementById("theoryModalTopicTitle");
-    this.theoryModalPoints = document.getElementById("theoryModalPoints");
     this.btnCloseTheoryModal = document.getElementById("btnCloseTheoryModal");
     this.btnCancelTheoryModal = document.getElementById("btnCancelTheoryModal");
+    const theoryModalEditorBox = document.getElementById("theoryModalEditor");
+    if (theoryModalEditorBox) {
+      this.theoryModalEditor = new RichEditor({
+        container: theoryModalEditorBox,
+        placeholder: "Write or paste theory content here (No default bullets, paste as-is, bold, underline, color)...",
+        minHeight: 140
+      });
+    }
 
     // Trick Modal elements
     this.trickModalTitle = document.getElementById("trickModalTitle");
@@ -160,11 +174,19 @@ class AppController {
     this.trickModalTrickId = document.getElementById("trickModalTrickId");
     this.trickModalUnitSelect = document.getElementById("trickModalUnitSelect");
     this.trickModalTitleInput = document.getElementById("trickModalTitleInput");
+    this.trickModalLightbulb = document.getElementById("trickModalLightbulb");
     this.trickModalMnemonic = document.getElementById("trickModalMnemonic");
-    this.trickModalExplanation = document.getElementById("trickModalExplanation");
     this.trickModalProTip = document.getElementById("trickModalProTip");
     this.btnCloseTrickModal = document.getElementById("btnCloseTrickModal");
     this.btnCancelTrickModal = document.getElementById("btnCancelTrickModal");
+    const trickModalExpBox = document.getElementById("trickModalExplanationEditor");
+    if (trickModalExpBox) {
+      this.trickModalExplanationEditor = new RichEditor({
+        container: trickModalExpBox,
+        placeholder: "Write explanation, shortcut steps, or notes...",
+        minHeight: 100
+      });
+    }
 
     // Note (Notepad) Modal elements
     this.noteModal = document.getElementById("noteModal");
@@ -173,10 +195,37 @@ class AppController {
     this.noteModalNoteId = document.getElementById("noteModalNoteId");
     this.noteModalUnitSelect = document.getElementById("noteModalUnitSelect");
     this.noteModalTitleInput = document.getElementById("noteModalTitleInput");
-    this.noteModalContentTextarea = document.getElementById("noteModalContentTextarea");
     this.noteModalColorDots = document.getElementById("noteModalColorDots");
     this.btnCloseNoteModal = document.getElementById("btnCloseNoteModal");
     this.btnCancelNoteModal = document.getElementById("btnCancelNoteModal");
+    const noteModalEditorBox = document.getElementById("noteModalEditor");
+    if (noteModalEditorBox) {
+      this.noteModalEditor = new RichEditor({
+        container: noteModalEditorBox,
+        placeholder: "Write your study points and notes here...",
+        minHeight: 130
+      });
+    }
+
+    // Notepad Main Form Rich Editor
+    const createNoteEditorBox = document.getElementById("createNoteEditor");
+    if (createNoteEditorBox) {
+      this.createNoteEditor = new RichEditor({
+        container: createNoteEditorBox,
+        placeholder: "Write your notes freely (paste as-is, underline, bold, highlight, change color like Word)...",
+        minHeight: 90
+      });
+    }
+
+    // Mind Map Modal elements
+    this.mindMapModalTitle = document.getElementById("mindMapModalTitle");
+    this.mindMapModalForm = document.getElementById("mindMapModalForm");
+    this.mindMapTopicId = document.getElementById("mindMapTopicId");
+    this.mindMapCentralTopic = document.getElementById("mindMapCentralTopic");
+    this.mindMapBranchesContainer = document.getElementById("mindMapBranchesContainer");
+    this.btnAddMindMapBranch = document.getElementById("btnAddMindMapBranch");
+    this.btnCloseMindMapModal = document.getElementById("btnCloseMindMapModal");
+    this.btnCancelMindMapModal = document.getElementById("btnCancelMindMapModal");
   }
 
   initHistory() {
@@ -458,6 +507,21 @@ class AppController {
       });
     }
 
+    // Mind Map Modal triggers & submit
+    if (this.btnCloseMindMapModal) this.btnCloseMindMapModal.addEventListener("click", closeModals);
+    if (this.btnCancelMindMapModal) this.btnCancelMindMapModal.addEventListener("click", closeModals);
+    if (this.mindMapModalForm) {
+      this.mindMapModalForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        this.handleMindMapModalSubmit();
+      });
+    }
+    if (this.btnAddMindMapBranch) {
+      this.btnAddMindMapBranch.addEventListener("click", () => {
+        this.addMindMapBranchRow();
+      });
+    }
+
     // Reset All PYQs Button
     if (this.btnResetAllPyqs) {
       this.btnResetAllPyqs.addEventListener("click", () => {
@@ -535,6 +599,7 @@ class AppController {
     if (this.theoryModal) this.theoryModal.style.display = "none";
     if (this.trickModal) this.trickModal.style.display = "none";
     if (this.noteModal) this.noteModal.style.display = "none";
+    if (this.mindMapModal) this.mindMapModal.style.display = "none";
 
     if (triggerHistoryBack && window.history.state && window.history.state.isModal) {
       this._ignoreNextPopstate = true;
@@ -561,7 +626,7 @@ class AppController {
     this.theoryModalTitle.textContent = "➕ Add Theory Topic";
     this.theoryModalTopicId.value = "";
     this.theoryModalTopicTitle.value = "";
-    this.theoryModalPoints.value = "";
+    if (this.theoryModalEditor) this.theoryModalEditor.clear();
     this.theoryModalUnitSelect.disabled = false;
 
     this.pushModalState("addTheory");
@@ -580,8 +645,20 @@ class AppController {
     this.theoryModalTitle.textContent = "✏️ Edit Theory Topic";
     this.theoryModalTopicId.value = topic.id;
     this.theoryModalTopicTitle.value = topic.title;
-    this.theoryModalPoints.value = (topic.points || []).map(p => `• ${p.replace(/^[•\s]+/, "")}`).join("\n");
-    this.theoryModalUnitSelect.disabled = true; // unit locked during edit
+
+    if (this.theoryModalEditor) {
+      if (topic.content) {
+        this.theoryModalEditor.setHtml(topic.content);
+      } else if (topic.points && topic.points.length > 0) {
+        const cleanLines = topic.points
+          .map(p => `<div>${escapeHtml(p.replace(/^[•\-\*\s]+/, "").trim())}</div>`)
+          .join("");
+        this.theoryModalEditor.setHtml(cleanLines);
+      } else {
+        this.theoryModalEditor.clear();
+      }
+    }
+    this.theoryModalUnitSelect.disabled = true;
 
     this.pushModalState("editTheory");
     this.modalOverlay.style.display = "block";
@@ -594,20 +671,18 @@ class AppController {
     const topicId = this.theoryModalTopicId.value;
     const unitId = this.theoryModalUnitSelect.value;
     const title = this.theoryModalTopicTitle.value.trim();
-    const rawPoints = this.theoryModalPoints.value.split("\n").map(l => l.trim()).filter(Boolean);
+    const content = this.theoryModalEditor ? this.theoryModalEditor.getHtml() : "";
 
-    if (!title || rawPoints.length === 0) {
-      showToast("Please enter title and at least one point!", "info");
+    if (!title || !content) {
+      showToast("Please enter title and theory content!", "info");
       return;
     }
 
     if (topicId) {
-      // Update
-      dataManager.updateTheoryTopic(state.activePaper, topicId, { title, points: rawPoints });
-      showToast("Theory topic updated!", "success");
+      dataManager.updateTheoryTopic(state.activePaper, topicId, { title, content });
+      showToast("Theory topic updated successfully!", "success");
     } else {
-      // Add
-      dataManager.addTheoryTopic(state.activePaper, unitId, { title, points: rawPoints });
+      dataManager.addTheoryTopic(state.activePaper, unitId, { title, content });
       showToast("New theory topic added!", "success");
     }
 
@@ -623,8 +698,9 @@ class AppController {
     this.trickModalTitle.textContent = "➕ Add Short Trick";
     this.trickModalTrickId.value = "";
     this.trickModalTitleInput.value = "";
+    if (this.trickModalLightbulb) this.trickModalLightbulb.value = "";
     this.trickModalMnemonic.value = "";
-    this.trickModalExplanation.value = "";
+    if (this.trickModalExplanationEditor) this.trickModalExplanationEditor.clear();
     this.trickModalProTip.value = "";
     this.trickModalUnitSelect.disabled = false;
 
@@ -644,8 +720,13 @@ class AppController {
     this.trickModalTitle.textContent = "✏️ Edit Short Trick";
     this.trickModalTrickId.value = trick.id;
     this.trickModalTitleInput.value = trick.title;
+    if (this.trickModalLightbulb) {
+      this.trickModalLightbulb.value = trick.lightbulb || "";
+    }
     this.trickModalMnemonic.value = trick.mnemonic;
-    this.trickModalExplanation.value = trick.explanation;
+    if (this.trickModalExplanationEditor) {
+      this.trickModalExplanationEditor.setHtml(trick.explanation || "");
+    }
     this.trickModalProTip.value = trick.proTip || "";
     this.trickModalUnitSelect.disabled = true;
 
@@ -660,8 +741,9 @@ class AppController {
     const trickId = this.trickModalTrickId.value;
     const unitId = this.trickModalUnitSelect.value;
     const title = this.trickModalTitleInput.value.trim();
+    const lightbulb = this.trickModalLightbulb ? this.trickModalLightbulb.value.trim() : "";
     const mnemonic = this.trickModalMnemonic.value.trim();
-    const explanation = this.trickModalExplanation.value.trim();
+    const explanation = this.trickModalExplanationEditor ? this.trickModalExplanationEditor.getHtml() : "";
     const proTip = this.trickModalProTip.value.trim();
 
     if (!title || !mnemonic || !explanation) {
@@ -670,12 +752,10 @@ class AppController {
     }
 
     if (trickId) {
-      // Update
-      dataManager.updateTrick(state.activePaper, trickId, { title, mnemonic, explanation, proTip });
+      dataManager.updateTrick(state.activePaper, trickId, { title, lightbulb, mnemonic, explanation, proTip });
       showToast("Trick updated successfully!", "success");
     } else {
-      // Add
-      dataManager.addTrick(state.activePaper, unitId, { title, mnemonic, explanation, proTip });
+      dataManager.addTrick(state.activePaper, unitId, { title, lightbulb, mnemonic, explanation, proTip });
       showToast("New trick added successfully!", "success");
     }
 
@@ -700,9 +780,10 @@ class AppController {
     this.noteModalTitle.textContent = "✏️ Edit Study Point";
     this.noteModalNoteId.value = note.id;
     this.noteModalTitleInput.value = note.title || "";
-    this.noteModalContentTextarea.value = note.content || "";
+    if (this.noteModalEditor) {
+      this.noteModalEditor.setHtml(note.content || "");
+    }
 
-    // Set active color dot
     if (this.noteModalColorDots) {
       const noteColor = (note.color || "#8b5cf6").toLowerCase();
       let matched = false;
@@ -731,7 +812,7 @@ class AppController {
     const noteId = this.noteModalNoteId.value;
     const unitSelect = this.noteModalUnitSelect;
     const title = this.noteModalTitleInput.value.trim() || "My Study Point";
-    const content = this.noteModalContentTextarea.value.trim();
+    const content = this.noteModalEditor ? this.noteModalEditor.getHtml() : "";
     const activeColorDot = this.noteModalColorDots?.querySelector(".color-dot.active");
     const color = activeColorDot ? activeColorDot.getAttribute("data-color") : "#8b5cf6";
 
@@ -760,11 +841,10 @@ class AppController {
   handleCreateNoteSubmit(form) {
     const titleInput = form.querySelector(".point-title-input");
     const unitSelect = form.querySelector(".point-unit-select");
-    const textArea = form.querySelector(".point-textarea");
     const activeColorDot = form.querySelector(".color-dot.active");
 
     const title = titleInput.value.trim() || "My Study Point";
-    const content = textArea.value.trim();
+    const content = this.createNoteEditor ? this.createNoteEditor.getHtml() : "";
     const color = activeColorDot ? activeColorDot.getAttribute("data-color") : "#8b5cf6";
 
     if (!content) {
@@ -786,8 +866,209 @@ class AppController {
     });
 
     titleInput.value = "";
-    textArea.value = "";
+    if (this.createNoteEditor) this.createNoteEditor.clear();
     showToast("Saved! Point displayed at the top.", "success");
+  }
+
+  // --- MIND MAP MODAL CONTROLLER ---
+
+  openEditMindMapModal(topicId) {
+    const state = store.getState();
+    const match = dataManager.getTheoryTopic(state.activePaper, topicId);
+    if (!match) return;
+
+    const { topic } = match;
+    this.mindMapTopicId.value = topic.id;
+    const defaultTopicTitle = topic.mindMap?.centralTopic || topic.title;
+    this.mindMapCentralTopic.value = defaultTopicTitle;
+
+    // Build branch list
+    let branches = [];
+    if (topic.mindMap && Array.isArray(topic.mindMap.branches) && topic.mindMap.branches.length > 0) {
+      branches = JSON.parse(JSON.stringify(topic.mindMap.branches));
+    } else {
+      const colors = ["#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ec4899", "#3b82f6"];
+      const icons = ["💡", "🎯", "📌", "⚡", "🔍", "📖"];
+      const pts = topic.points || [];
+      if (pts.length > 0) {
+        pts.forEach((pt, idx) => {
+          const clean = pt.replace(/^[•\-\*\s]+/, "").trim();
+          const colonIdx = clean.indexOf(":");
+          if (colonIdx > 0 && colonIdx < 60) {
+            const title = clean.substring(0, colonIdx).trim();
+            const desc = clean.substring(colonIdx + 1).trim();
+            const subItems = desc.split(/;\s*|\.\s+(?=[A-Z0-9])/).map(s => s.trim()).filter(Boolean);
+            branches.push({
+              title,
+              color: colors[branches.length % colors.length],
+              icon: icons[branches.length % icons.length],
+              items: subItems.length > 0 ? subItems.slice(0, 4) : [desc]
+            });
+          } else {
+            branches.push({
+              title: `Branch ${idx + 1}`,
+              color: colors[branches.length % colors.length],
+              icon: icons[branches.length % icons.length],
+              items: [clean]
+            });
+          }
+        });
+      } else {
+        branches = [
+          { title: "Core Concepts", color: "#8b5cf6", icon: "💡", items: ["Key Definition", "Importance"] },
+          { title: "Applications", color: "#06b6d4", icon: "🎯", items: ["Exam Priority Area"] }
+        ];
+      }
+    }
+
+    this.renderMindMapBranchesEditor(branches);
+
+    this.pushModalState("editMindMap");
+    this.modalOverlay.style.display = "block";
+    this.mindMapModal.style.display = "flex";
+    this.mindMapCentralTopic.focus();
+  }
+
+  renderMindMapBranchesEditor(branches) {
+    if (!this.mindMapBranchesContainer) return;
+    this.mindMapBranchesContainer.innerHTML = "";
+    branches.forEach(b => this.addMindMapBranchRow(b));
+  }
+
+  addMindMapBranchRow(branchData = {}) {
+    if (!this.mindMapBranchesContainer) return;
+    const colors = ["#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ec4899", "#3b82f6"];
+    const icons = ["💡", "🎯", "📌", "⚡", "🔍", "📖", "🧠", "🚀"];
+    const branchColor = branchData.color || colors[this.mindMapBranchesContainer.children.length % colors.length];
+    const branchIcon = branchData.icon || "📌";
+    const branchTitle = branchData.title || `Branch ${this.mindMapBranchesContainer.children.length + 1}`;
+    const items = Array.isArray(branchData.items) ? branchData.items : ["Key detail"];
+
+    const card = document.createElement("div");
+    card.className = "mindmap-branch-edit-card";
+    card.style.borderLeft = `4px solid ${branchColor}`;
+
+    let iconOptionsHtml = icons.map(ic => `<option value="${ic}" ${ic === branchIcon ? 'selected' : ''}>${ic}</option>`).join("");
+
+    let colorDotsHtml = colors.map(c => `
+      <span class="color-dot ${c === branchColor ? 'active' : ''}" data-color="${c}" style="background: ${c};"></span>
+    `).join("");
+
+    card.innerHTML = `
+      <div class="mindmap-branch-edit-header">
+        <select class="mindmap-branch-icon-select" title="Branch Icon">
+          ${iconOptionsHtml}
+        </select>
+        <input type="text" class="mindmap-branch-title-input" value="${escapeAttr(branchTitle)}" placeholder="Branch Title" required>
+        <button type="button" class="btn-del-branch" title="Delete Branch">🗑️</button>
+      </div>
+      <div class="mindmap-color-picker-row">
+        <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700;">Color:</span>
+        ${colorDotsHtml}
+      </div>
+      <div class="mindmap-subitems-edit-list">
+        <!-- Sub-items -->
+      </div>
+      <button type="button" class="btn-add-subitem">➕ Add Sub-Node</button>
+    `;
+
+    const subitemsList = card.querySelector(".mindmap-subitems-edit-list");
+    const addSubItemBtn = card.querySelector(".btn-add-subitem");
+    const delBranchBtn = card.querySelector(".btn-del-branch");
+
+    const renderSubItem = (val = "") => {
+      const row = document.createElement("div");
+      row.className = "mindmap-subitem-edit-row";
+      row.innerHTML = `
+        <input type="text" class="mindmap-subitem-input" value="${escapeAttr(val)}" placeholder="Sub-node detail...">
+        <button type="button" class="btn-del-subitem" title="Remove">✕</button>
+      `;
+      row.querySelector(".btn-del-subitem").addEventListener("click", () => row.remove());
+      subitemsList.appendChild(row);
+    };
+
+    items.forEach(it => renderSubItem(it));
+
+    addSubItemBtn.addEventListener("click", () => {
+      renderSubItem("");
+    });
+
+    delBranchBtn.addEventListener("click", () => {
+      if (this.mindMapBranchesContainer.children.length <= 1) {
+        showToast("Mind map must have at least one branch!", "info");
+        return;
+      }
+      card.remove();
+    });
+
+    // Color selector
+    card.querySelectorAll(".color-dot").forEach(dot => {
+      dot.addEventListener("click", () => {
+        card.querySelectorAll(".color-dot").forEach(d => d.classList.remove("active"));
+        dot.classList.add("active");
+        const chosenColor = dot.getAttribute("data-color");
+        card.style.borderLeftColor = chosenColor;
+      });
+    });
+
+    this.mindMapBranchesContainer.appendChild(card);
+  }
+
+  handleMindMapModalSubmit() {
+    const state = store.getState();
+    const topicId = this.mindMapTopicId.value;
+    const centralTopic = this.mindMapCentralTopic.value.trim();
+
+    if (!centralTopic) {
+      showToast("Please enter a central topic!", "info");
+      return;
+    }
+
+    const branches = [];
+    const branchCards = this.mindMapBranchesContainer.querySelectorAll(".mindmap-branch-edit-card");
+    branchCards.forEach(card => {
+      const title = card.querySelector(".mindmap-branch-title-input").value.trim() || "Branch";
+      const icon = card.querySelector(".mindmap-branch-icon-select").value || "📌";
+      const activeDot = card.querySelector(".color-dot.active");
+      const color = activeDot ? activeDot.getAttribute("data-color") : "#8b5cf6";
+
+      const items = [];
+      card.querySelectorAll(".mindmap-subitem-input").forEach(inp => {
+        const val = inp.value.trim();
+        if (val) items.push(val);
+      });
+
+      branches.push({
+        title,
+        icon,
+        color,
+        items: items.length > 0 ? items : [title]
+      });
+    });
+
+    if (branches.length === 0) {
+      showToast("Please add at least one branch!", "info");
+      return;
+    }
+
+    const updated = dataManager.updateTopicMindMap(state.activePaper, topicId, {
+      centralTopic,
+      branches
+    });
+
+    if (updated) {
+      showToast("Mind Map updated successfully!", "success");
+      this.closeAllModals();
+      this.renderTheorySection(store.getCurrentPaperData());
+      setTimeout(() => {
+        const mapContainer = document.getElementById(`mindmap-${topicId}`);
+        const toggleBtn = document.querySelector(`.btn-toggle-mindmap[data-topic-id="${topicId}"]`);
+        if (mapContainer) {
+          mapContainer.style.display = "flex";
+          if (toggleBtn) toggleBtn.innerHTML = "✕ Close Map";
+        }
+      }, 50);
+    }
   }
 
   render() {
@@ -1019,6 +1300,19 @@ class AppController {
 
     let html = "";
     allTheory.forEach(item => {
+      let contentHtml = "";
+      if (item.content) {
+        contentHtml = `<div class="theory-content-body">${item.content}</div>`;
+      } else if (item.points && item.points.length > 0) {
+        contentHtml = `
+          <div class="theory-content-body">
+            ${item.points.map(p => `
+              <div class="theory-clean-point">${formatBulletText(p)}</div>
+            `).join("")}
+          </div>
+        `;
+      }
+
       html += `
         <div class="theory-card" data-topic-id="${item.id}">
           <div class="theory-card-top">
@@ -1038,14 +1332,7 @@ class AppController {
 
           <h3 class="theory-topic-title">${escapeHtml(item.title)}</h3>
 
-          <ul class="bullet-points-list">
-            ${item.points.map(p => `
-              <li class="bullet-item">
-                <span class="bullet-marker"></span>
-                <span class="bullet-text">${formatBulletText(p)}</span>
-              </li>
-            `).join("")}
-          </ul>
+          ${contentHtml}
 
           <div id="mindmap-${item.id}" class="theory-mindmap-container" style="display: none;">
             ${this.renderMindMapHtml(item)}
@@ -1065,6 +1352,15 @@ class AppController {
         const isHidden = mapContainer.style.display === "none";
         mapContainer.style.display = isHidden ? "flex" : "none";
         btn.innerHTML = isHidden ? "✕ Close Map" : "🗺️ Mind Map";
+      });
+    });
+
+    // Attach Edit Mind Map events
+    this.theoryCardsContainer.querySelectorAll(".btn-edit-mindmap").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const topicId = btn.getAttribute("data-topic-id");
+        this.openEditMindMapModal(topicId);
       });
     });
 
@@ -1088,13 +1384,18 @@ class AppController {
   }
 
   renderMindMapHtml(item) {
-    // 1. Explicit diagram object
-    if (item.diagram) {
+    // 1. Explicit diagram object if not overridden by custom mindMap
+    if (item.diagram && !item.mindMap) {
       if (item.diagram.type === "stack") {
         return `
           <div class="mindmap-top-bar">
             <span class="mindmap-heading">📐 ${escapeHtml(item.diagram.title || item.title)}</span>
-            <span class="mindmap-badge">${escapeHtml(item.diagram.badge || "Layered Hierarchy")}</span>
+            <div class="mindmap-top-actions">
+              <button class="btn-edit-mindmap" data-topic-id="${item.id}" type="button" title="Edit Mind Map">
+                ✏️ Edit Map
+              </button>
+              <span class="mindmap-badge">${escapeHtml(item.diagram.badge || "Layered Hierarchy")}</span>
+            </div>
           </div>
           <div class="diagram-stack-container">
             ${item.diagram.layers.map(l => `
@@ -1113,7 +1414,12 @@ class AppController {
         return `
           <div class="mindmap-top-bar">
             <span class="mindmap-heading">🔄 ${escapeHtml(item.diagram.title || item.title)}</span>
-            <span class="mindmap-badge">Sequential Pipeline</span>
+            <div class="mindmap-top-actions">
+              <button class="btn-edit-mindmap" data-topic-id="${item.id}" type="button" title="Edit Mind Map">
+                ✏️ Edit Map
+              </button>
+              <span class="mindmap-badge">Sequential Pipeline</span>
+            </div>
           </div>
           <div class="diagram-flow-steps">
             ${item.diagram.steps.map((st, sIdx) => `
@@ -1131,7 +1437,12 @@ class AppController {
         return `
           <div class="mindmap-top-bar">
             <span class="mindmap-heading">⚡ ${escapeHtml(item.diagram.title || item.title)}</span>
-            <span class="mindmap-badge">Relationship Matrix</span>
+            <div class="mindmap-top-actions">
+              <button class="btn-edit-mindmap" data-topic-id="${item.id}" type="button" title="Edit Mind Map">
+                ✏️ Edit Map
+              </button>
+              <span class="mindmap-badge">Relationship Matrix</span>
+            </div>
           </div>
           <div class="diagram-matrix-container">
             ${item.diagram.cells.map(c => `
@@ -1145,158 +1456,78 @@ class AppController {
       }
     }
 
-    // 2. Explicit mindMap object
-    if (item.mindMap && item.mindMap.branches) {
-      return `
-        <div class="mindmap-top-bar">
-          <span class="mindmap-heading">🗺️ ${escapeHtml(item.mindMap.centralTopic || item.title)}</span>
-          <span class="mindmap-badge">Exam Mind Map</span>
-        </div>
-        <div class="mindmap-root-node">
-          ⭐ ${escapeHtml(item.mindMap.centralTopic || item.title)}
-        </div>
-        <div class="mindmap-branches-grid">
-          ${item.mindMap.branches.map(b => `
-            <div class="mindmap-branch-card" style="border-top: 3px solid ${b.color || 'var(--accent-current)'};">
-              <div class="mindmap-branch-header" style="color: ${b.color || 'var(--accent-current)'};">
-                <span>${b.icon || '📌'}</span>
-                <span>${escapeHtml(b.title)}</span>
-              </div>
-              <div class="mindmap-pill-list">
-                ${(b.items || []).map(p => `
-                  <div class="mindmap-node-pill" style="border-left-color: ${b.color || 'var(--accent-current)'};">
-                    ${escapeHtml(p)}
-                  </div>
-                `).join("")}
-              </div>
-            </div>
-          `).join("")}
-        </div>
-      `;
-    }
+    // 2. Mind Map: Colorful, smooth, modern infographic
+    const centralTopic = item.mindMap?.centralTopic || item.title;
+    let branches = [];
 
-    // 3. Smart Automatic Infographic Mind Map Generator
-    const branches = [];
-    const colors = ["#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ec4899", "#3b82f6"];
-    const icons = ["💡", "🎯", "📌", "⚡", "🔍", "📖"];
-
-    (item.points || []).forEach((pt, idx) => {
-      const clean = pt.replace(/^[•\-\*\s]+/, "").trim();
-      const colonIdx = clean.indexOf(":");
-      if (colonIdx > 0 && colonIdx < 60) {
-        const title = clean.substring(0, colonIdx).trim();
-        const desc = clean.substring(colonIdx + 1).trim();
-        const subItems = desc.split(/;\s*|\.\s+(?=[A-Z0-9])/).map(s => s.trim()).filter(Boolean);
-        branches.push({
-          title,
-          color: colors[branches.length % colors.length],
-          icon: icons[branches.length % icons.length],
-          items: subItems.length > 0 ? subItems.slice(0, 4) : [desc]
-        });
-      } else {
-        branches.push({
-          title: `Point ${idx + 1}`,
-          color: colors[branches.length % colors.length],
-          icon: icons[branches.length % icons.length],
-          items: [clean]
-        });
+    if (item.mindMap && Array.isArray(item.mindMap.branches) && item.mindMap.branches.length > 0) {
+      branches = item.mindMap.branches;
+    } else {
+      const colors = ["#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ec4899", "#3b82f6"];
+      const icons = ["💡", "🎯", "📌", "⚡", "🔍", "📖"];
+      const pts = item.points || [];
+      pts.forEach((pt, idx) => {
+        const clean = pt.replace(/^[•\-\*\s]+/, "").trim();
+        const colonIdx = clean.indexOf(":");
+        if (colonIdx > 0 && colonIdx < 60) {
+          const title = clean.substring(0, colonIdx).trim();
+          const desc = clean.substring(colonIdx + 1).trim();
+          const subItems = desc.split(/;\s*|\.\s+(?=[A-Z0-9])/).map(s => s.trim()).filter(Boolean);
+          branches.push({
+            title,
+            color: colors[branches.length % colors.length],
+            icon: icons[branches.length % icons.length],
+            items: subItems.length > 0 ? subItems.slice(0, 4) : [desc]
+          });
+        } else {
+          branches.push({
+            title: `Branch ${idx + 1}`,
+            color: colors[branches.length % colors.length],
+            icon: icons[branches.length % icons.length],
+            items: [clean]
+          });
+        }
+      });
+      if (branches.length === 0) {
+        branches = [
+          { title: "Key Principles", color: "#8b5cf6", icon: "💡", items: ["Core Concepts"] }
+        ];
       }
-    });
+    }
 
     return `
       <div class="mindmap-top-bar">
-        <span class="mindmap-heading">🗺️ Exam-Oriented Infographic Mind Map</span>
-        <span class="mindmap-badge">Visual Concept Map</span>
+        <span class="mindmap-heading">🗺️ ${escapeHtml(centralTopic)}</span>
+        <div class="mindmap-top-actions">
+          <button class="btn-edit-mindmap" data-topic-id="${item.id}" type="button" title="Edit Mind Map">
+            ✏️ Edit Mind Map
+          </button>
+          <span class="mindmap-badge">Interactive Map</span>
+        </div>
       </div>
       <div class="mindmap-root-node">
-        🎯 ${escapeHtml(item.title)}
+        <span>⭐</span>
+        <span>${escapeHtml(centralTopic)}</span>
+      </div>
+      <div class="mindmap-tree-stem-wrap">
+        <div class="mindmap-tree-stem"></div>
       </div>
       <div class="mindmap-branches-grid">
         ${branches.map(b => `
-          <div class="mindmap-branch-card" style="border-top: 3px solid ${b.color};">
-            <div class="mindmap-branch-header" style="color: ${b.color};">
-              <span>${b.icon}</span>
+          <div class="mindmap-branch-card" style="border-top: 3.5px solid ${b.color || 'var(--accent-current)'};">
+            <div class="mindmap-branch-header" style="color: ${b.color || 'var(--accent-current)'};">
+              <span>${b.icon || '📌'}</span>
               <span>${escapeHtml(b.title)}</span>
             </div>
             <div class="mindmap-pill-list">
-              ${b.items.map(p => `
-                <div class="mindmap-node-pill" style="border-left-color: ${b.color};">
+              ${(b.items || []).map(p => `
+                <div class="mindmap-node-pill" style="border-left-color: ${b.color || 'var(--accent-current)'};">
                   ${escapeHtml(p)}
                 </div>
               `).join("")}
             </div>
           </div>
         `).join("")}
-      </div>
-    `;
-  }
-
-  formatMnemonicCard(mnemonic, explanation, colorTheme) {
-    const rawMnemonic = (mnemonic || "").trim();
-    const rawExplanation = (explanation || "").trim();
-
-    // 1. Separate hook vs catchphrase if colon or quotes present
-    let hook = "";
-    let phrase = "";
-
-    const colonIdx = rawMnemonic.indexOf(":");
-    if (colonIdx > 0 && colonIdx < rawMnemonic.length - 1) {
-      hook = rawMnemonic.substring(0, colonIdx).trim();
-      phrase = rawMnemonic.substring(colonIdx + 1).trim();
-      if ((phrase.startsWith("'") && phrase.endsWith("'")) || (phrase.startsWith('"') && phrase.endsWith('"'))) {
-        phrase = phrase.substring(1, phrase.length - 1).trim();
-      }
-    } else {
-      hook = rawMnemonic;
-    }
-
-    // 2. Parse structured steps (→ or ->) or pairwise key-value logic (| or =)
-    let explanationHtml = "";
-    const hasArrow = rawExplanation.includes("→") || rawExplanation.includes("->");
-    const hasPipe = rawExplanation.includes("|");
-
-    if (hasArrow) {
-      const steps = rawExplanation.split(/→|->/).map(s => s.trim().replace(/\.$/, "")).filter(Boolean);
-      if (steps.length > 1) {
-        const stepChips = steps.map((st, i) => `
-          <div class="trick-step-chip">
-            <span class="step-num">${i + 1}</span>
-            <span class="step-text">${escapeHtml(st)}</span>
-          </div>
-        `).join('<span class="trick-flow-arrow">➔</span>');
-        explanationHtml = `<div class="trick-flow-steps">${stepChips}</div>`;
-      }
-    } else if (hasPipe) {
-      const pairs = rawExplanation.split("|").map(s => s.trim().replace(/\.$/, "")).filter(Boolean);
-      if (pairs.length > 1) {
-        const pairChips = pairs.map(pair => {
-          if (pair.includes("=")) {
-            const [k, v] = pair.split("=").map(s => s.trim());
-            return `
-              <div class="trick-pair-chip">
-                <span class="pair-key">${escapeHtml(k)}</span>
-                <span class="pair-arrow">➔</span>
-                <span class="pair-val">${escapeHtml(v)}</span>
-              </div>
-            `;
-          }
-          return `<div class="trick-pair-chip"><span class="pair-val">${escapeHtml(pair)}</span></div>`;
-        }).join("");
-        explanationHtml = `<div class="trick-pair-grid">${pairChips}</div>`;
-      }
-    }
-
-    if (!explanationHtml) {
-      explanationHtml = `<div class="mnemonic-desc">${escapeHtml(rawExplanation)}</div>`;
-    }
-
-    return `
-      <div class="mnemonic-box">
-        <div class="mnemonic-top-row">
-          <span class="mnemonic-hook-badge">💡 ${escapeHtml(hook)}</span>
-          ${phrase ? `<div class="mnemonic-catchphrase">"${escapeHtml(phrase)}"</div>` : ""}
-        </div>
-        ${explanationHtml}
       </div>
     `;
   }
@@ -1324,9 +1555,10 @@ class AppController {
     });
 
     if (state.searchQuery) {
-      const q = state.searchQuery;
+      const q = state.searchQuery.toLowerCase();
       allTricks = allTricks.filter(t =>
         t.title.toLowerCase().includes(q) ||
+        (t.lightbulb && t.lightbulb.toLowerCase().includes(q)) ||
         t.mnemonic.toLowerCase().includes(q) ||
         t.explanation.toLowerCase().includes(q) ||
         (t.proTip && t.proTip.toLowerCase().includes(q)) ||
@@ -1350,7 +1582,7 @@ class AppController {
     let html = "";
     allTricks.forEach((tr, trIdx) => {
       const colorTheme = trickThemes[trIdx % trickThemes.length];
-      const mnemonicHtml = this.formatMnemonicCard(tr.mnemonic, tr.explanation, colorTheme);
+      const directBulbText = tr.lightbulb ? tr.lightbulb : `${tr.title} Key Trick`;
 
       html += `
         <div class="trick-card theme-${colorTheme}" data-trick-id="${tr.id}">
@@ -1360,7 +1592,7 @@ class AppController {
               <h3 class="trick-title">${escapeHtml(tr.title)}</h3>
             </div>
             <div class="card-action-btns">
-              <button class="card-btn-action copy-trick-btn" data-text="${escapeHtml(tr.mnemonic + ' - ' + tr.explanation)}">
+              <button class="card-btn-action copy-trick-btn" data-text="${escapeAttr(tr.mnemonic + ' - ' + tr.explanation)}">
                 📋 Copy
               </button>
               <button class="card-btn-action edit btn-edit-trick" data-trick-id="${tr.id}" title="Edit Trick">
@@ -1372,7 +1604,22 @@ class AppController {
             </div>
           </div>
 
-          ${mnemonicHtml}
+          <!-- Direct 💡 Box: Displays directly written content without forced mnemonic splitting! -->
+          <div class="trick-direct-lightbulb-box">
+            <span class="trick-direct-bulb-icon">💡</span>
+            <div class="trick-direct-bulb-text">${escapeHtml(directBulbText)}</div>
+          </div>
+
+          <!-- Mnemonic / Shortcut Rule: preserved completely -->
+          <div class="trick-mnemonic-clean-box">
+            <span class="trick-mnemonic-clean-title">Mnemonic / Shortcut Rule</span>
+            <div class="trick-mnemonic-clean-rule">${escapeHtml(tr.mnemonic)}</div>
+          </div>
+
+          <!-- Explanation: formatted content without default bullets -->
+          <div class="trick-explanation-clean-body">
+            ${tr.explanation || ""}
+          </div>
 
           ${tr.proTip ? `
             <div class="trick-tip">
@@ -1448,12 +1695,15 @@ class AppController {
 
     let html = "";
     notes.forEach(n => {
-      const timeStr = new Date(n.updatedAt || n.createdAt).toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-      });
+      // Date ONLY display - No time!
+      const dateObj = new Date(n.updatedAt || n.createdAt);
+      const timeStr = isNaN(dateObj.getTime())
+        ? ""
+        : dateObj.toLocaleDateString(undefined, {
+            year: "numeric",
+            month: "short",
+            day: "numeric"
+          });
 
       html += `
         <div class="saved-point-card" style="border-left: 3.5px solid ${n.color || 'var(--accent-current)'};">
@@ -1469,8 +1719,8 @@ class AppController {
             </div>
           </div>
           <h4 class="saved-point-title">${escapeHtml(n.title)}</h4>
-          <div class="saved-point-body">${escapeHtml(n.content)}</div>
-          <div class="saved-point-footer">${timeStr}</div>
+          <div class="saved-point-body">${n.content || ""}</div>
+          <div class="saved-point-footer">📅 ${timeStr}</div>
         </div>
       `;
     });

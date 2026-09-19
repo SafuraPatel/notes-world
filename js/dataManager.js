@@ -159,7 +159,7 @@ export class DataManager {
 
   // --- THEORY TOPIC ACTIONS ---
 
-  addTheoryTopic(paperId, unitId, { title, points }) {
+  addTheoryTopic(paperId, unitId, { title, points, content, mindMap }) {
     const paper = this.data[paperId];
     const unit = paper.units.find(u => u.id === unitId) || paper.units[0];
     if (!unit.theoryNotes) unit.theoryNotes = [];
@@ -167,7 +167,9 @@ export class DataManager {
     const newTopic = {
       id: `custom_theory_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       title: title.trim(),
-      points: points.map(p => p.trim()).filter(Boolean)
+      points: points ? (Array.isArray(points) ? points.map(p => p.trim()).filter(Boolean) : [points]) : [],
+      content: content || "",
+      mindMap: mindMap || null
     };
 
     unit.theoryNotes.unshift(newTopic);
@@ -175,14 +177,34 @@ export class DataManager {
     return newTopic;
   }
 
-  updateTheoryTopic(paperId, topicId, { title, points }) {
+  updateTheoryTopic(paperId, topicId, { title, points, content, mindMap, diagram }) {
     const paper = this.data[paperId];
     for (const unit of paper.units) {
       if (unit.theoryNotes) {
         const topic = unit.theoryNotes.find(t => t.id === topicId);
         if (topic) {
           if (title !== undefined) topic.title = title.trim();
-          if (points !== undefined) topic.points = points.map(p => p.trim()).filter(Boolean);
+          if (points !== undefined) {
+            topic.points = Array.isArray(points) ? points.map(p => p.trim()).filter(Boolean) : (points ? [points] : []);
+          }
+          if (content !== undefined) topic.content = content;
+          if (mindMap !== undefined) topic.mindMap = mindMap;
+          if (diagram !== undefined) topic.diagram = diagram;
+          this.savePaperData(paperId);
+          return topic;
+        }
+      }
+    }
+    return null;
+  }
+
+  updateTopicMindMap(paperId, topicId, mindMap) {
+    const paper = this.data[paperId];
+    for (const unit of paper.units) {
+      if (unit.theoryNotes) {
+        const topic = unit.theoryNotes.find(t => t.id === topicId);
+        if (topic) {
+          topic.mindMap = mindMap;
           this.savePaperData(paperId);
           return topic;
         }
@@ -221,7 +243,7 @@ export class DataManager {
 
   // --- TRICKS ACTIONS ---
 
-  addTrick(paperId, unitId, { title, mnemonic, explanation, proTip }) {
+  addTrick(paperId, unitId, { title, mnemonic, explanation, proTip, lightbulb }) {
     const paper = this.data[paperId];
     const unit = paper.units.find(u => u.id === unitId) || paper.units[0];
     if (!unit.shortTricks) unit.shortTricks = [];
@@ -229,9 +251,10 @@ export class DataManager {
     const newTrick = {
       id: `custom_trick_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       title: title.trim(),
-      mnemonic: mnemonic.trim(),
-      explanation: explanation.trim(),
-      proTip: (proTip || "").trim()
+      mnemonic: (mnemonic || "").trim(),
+      explanation: (explanation || "").trim(),
+      proTip: (proTip || "").trim(),
+      lightbulb: (lightbulb || "").trim()
     };
 
     unit.shortTricks.unshift(newTrick);
@@ -239,16 +262,17 @@ export class DataManager {
     return newTrick;
   }
 
-  updateTrick(paperId, trickId, { title, mnemonic, explanation, proTip }) {
+  updateTrick(paperId, trickId, { title, mnemonic, explanation, proTip, lightbulb }) {
     const paper = this.data[paperId];
     for (const unit of paper.units) {
       if (unit.shortTricks) {
         const trick = unit.shortTricks.find(tr => tr.id === trickId);
         if (trick) {
           if (title !== undefined) trick.title = title.trim();
-          if (mnemonic !== undefined) trick.mnemonic = mnemonic.trim();
-          if (explanation !== undefined) trick.explanation = explanation.trim();
+          if (mnemonic !== undefined) trick.mnemonic = (mnemonic || "").trim();
+          if (explanation !== undefined) trick.explanation = (explanation || "").trim();
           if (proTip !== undefined) trick.proTip = (proTip || "").trim();
+          if (lightbulb !== undefined) trick.lightbulb = (lightbulb || "").trim();
           this.savePaperData(paperId);
           return trick;
         }
