@@ -77,6 +77,23 @@ export class DataManager {
     return removedCount;
   }
 
+  ensureGeneralUnit(paperObj) {
+    if (!paperObj || !paperObj.units) return null;
+    let genUnit = paperObj.units.find(u => u.id === "general");
+    if (!genUnit) {
+      genUnit = {
+        id: "general",
+        unitNumber: "📌",
+        name: "General Points",
+        icon: "📌",
+        theoryNotes: [],
+        shortTricks: []
+      };
+      paperObj.units.push(genUnit);
+    }
+    return genUnit;
+  }
+
   initPaperData(paperId, storageKey, defaultData) {
     try {
       const saved = localStorage.getItem(storageKey);
@@ -84,6 +101,7 @@ export class DataManager {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.units && parsed.units.length > 0) {
           const removed = this.deduplicatePaperUnits(parsed);
+          this.ensureGeneralUnit(parsed);
           if (removed > 0) {
             try {
               localStorage.setItem(storageKey, JSON.stringify(parsed));
@@ -114,6 +132,8 @@ export class DataManager {
         });
       }
     });
+
+    this.ensureGeneralUnit(cloned);
 
     try {
       localStorage.setItem(storageKey, JSON.stringify(cloned));
@@ -216,6 +236,7 @@ export class DataManager {
     }
 
     const paper = this.data[paperId];
+    this.ensureGeneralUnit(paper);
     const unit = paper.units.find(u => u.id === unitId) || paper.units[0];
     if (!unit.theoryNotes) unit.theoryNotes = [];
 
@@ -235,6 +256,7 @@ export class DataManager {
   updateTheoryTopic(paperId, topicId, { unitId, title, points, content, mindMap, diagram }) {
     const paper = this.data[paperId];
     if (!paper || !paper.units) return null;
+    this.ensureGeneralUnit(paper);
 
     // Check duplicate if title is provided
     if (title && title.trim()) {
@@ -333,6 +355,7 @@ export class DataManager {
     if (!topicData) return false;
     const paper = this.data[paperId];
     if (!paper || !paper.units) return false;
+    this.ensureGeneralUnit(paper);
 
     let targetUnit = paper.units.find(u => u.id === unitId);
     if (!targetUnit) targetUnit = paper.units[0];
@@ -403,6 +426,7 @@ export class DataManager {
     }
 
     const paper = this.data[paperId];
+    this.ensureGeneralUnit(paper);
     const unit = paper.units.find(u => u.id === unitId) || paper.units[0];
     if (!unit.shortTricks) unit.shortTricks = [];
 
@@ -423,6 +447,7 @@ export class DataManager {
   updateTrick(paperId, trickId, { unitId, title, mnemonic, explanation, proTip, lightbulb }) {
     const paper = this.data[paperId];
     if (!paper || !paper.units) return null;
+    this.ensureGeneralUnit(paper);
 
     if (title && title.trim()) {
       const existing = this.findTrickByTitle(paperId, title.trim(), trickId);
@@ -481,6 +506,7 @@ export class DataManager {
     if (!trickData) return false;
     const paper = this.data[paperId];
     if (!paper || !paper.units) return false;
+    this.ensureGeneralUnit(paper);
 
     let targetUnit = paper.units.find(u => u.id === unitId);
     if (!targetUnit) targetUnit = paper.units[0];

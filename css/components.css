@@ -3401,3 +3401,305 @@ u {
   color: #fbbf24;
 }
 
+/* ==========================================================================
+   RICH TEXT EDITOR: IMAGE INSERTION, UPLOADS, & LIGHTBOX ZOOM MODAL
+   ========================================================================== */
+
+/* Image toolbar button */
+.rich-btn-insert-image {
+  background: rgba(139, 92, 246, 0.12) !important;
+  border: 1px solid rgba(139, 92, 246, 0.35) !important;
+  color: var(--accent-current) !important;
+  font-weight: 700 !important;
+  gap: 0.3rem !important;
+  padding: 0 0.55rem !important;
+}
+
+.rich-btn-insert-image:hover {
+  background: var(--accent-current) !important;
+  color: #ffffff !important;
+  border-color: var(--accent-current) !important;
+}
+
+/* Image Dialog Popup */
+.rich-image-dialog {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 290px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.85rem;
+  z-index: 1050;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  animation: fadeInDown 0.15s ease-out;
+}
+
+[data-theme="light"] .rich-image-dialog {
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+}
+
+.rich-image-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.rich-image-dialog-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.btn-close-image-dialog {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.btn-close-image-dialog:hover {
+  color: var(--text-main);
+}
+
+.rich-image-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.btn-upload-file-trigger {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  background: var(--accent-current);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  transition: opacity 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.25);
+}
+
+.btn-upload-file-trigger:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.rich-dialog-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 0.25rem 0;
+}
+
+.rich-dialog-divider::before,
+.rich-dialog-divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid var(--border);
+}
+
+.rich-dialog-divider span {
+  padding: 0 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.rich-image-url-input {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-size: 0.82rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.rich-image-url-input:focus {
+  border-color: var(--accent-current);
+}
+
+.btn-insert-image-url {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-insert-image-url:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-current);
+}
+
+/* Drag over highlight on editor */
+.rich-editable-area.drag-over {
+  background: rgba(139, 92, 246, 0.1) !important;
+  border: 2px dashed var(--accent-current) !important;
+}
+
+/* Editor Image Container & Display */
+.editor-image-container {
+  display: block;
+  margin: 0.75rem 0;
+  text-align: center;
+}
+
+.rich-editor-image,
+.theory-content-body img,
+.trick-explanation-clean-body img,
+.saved-point-body img,
+.rich-editable-area img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  cursor: zoom-in;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.rich-editor-image:hover,
+.theory-content-body img:hover,
+.trick-explanation-clean-body img:hover,
+.saved-point-body img:hover,
+.rich-editable-area img:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  filter: brightness(1.03);
+}
+
+/* Table styling for pasted tables across Theory, Tricks, Notepad, and Editor */
+.theory-content-body table,
+.trick-explanation-clean-body table,
+.saved-point-body table,
+.rich-editable-area table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  font-size: 0.85rem;
+}
+
+.theory-content-body th,
+.theory-content-body td,
+.trick-explanation-clean-body th,
+.trick-explanation-clean-body td,
+.saved-point-body th,
+.saved-point-body td,
+.rich-editable-area th,
+.rich-editable-area td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+}
+
+.theory-content-body th,
+.trick-explanation-clean-body th,
+.saved-point-body th,
+.rich-editable-area th {
+  background: rgba(255, 255, 255, 0.06);
+  font-weight: 700;
+  color: var(--accent-current);
+}
+
+/* Fullscreen Image Lightbox Modal */
+.image-lightbox-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  cursor: zoom-out;
+  animation: fadeIn 0.18s ease-out;
+}
+
+.lightbox-close-btn {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.5rem;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10001;
+}
+
+.lightbox-close-btn:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  transform: scale(1.1);
+}
+
+.lightbox-image-wrap {
+  max-width: 92vw;
+  max-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+
+.lightbox-img {
+  max-width: 92vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85);
+  animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+

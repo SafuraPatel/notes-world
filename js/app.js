@@ -663,6 +663,53 @@ class AppController {
         }
       }
     });
+
+    // Lightbox modal elements
+    const lightboxModal = document.getElementById("imageLightboxModal");
+    const lightboxImg = document.getElementById("lightboxImage");
+    const btnCloseLightbox = document.getElementById("btnCloseLightbox");
+
+    const closeLightbox = () => {
+      if (lightboxModal) lightboxModal.style.display = "none";
+    };
+
+    if (btnCloseLightbox) btnCloseLightbox.addEventListener("click", closeLightbox);
+    if (lightboxModal) {
+      lightboxModal.addEventListener("click", (e) => {
+        if (e.target === lightboxModal || e.target.classList.contains("lightbox-image-wrap")) {
+          closeLightbox();
+        }
+      });
+    }
+
+    // Delegated click handler: Click any image anywhere (Theory, Tricks, Notepad, Rich editor) to zoom!
+    document.addEventListener("click", (e) => {
+      const target = e.target;
+      if (target && target.tagName === "IMG" && !target.classList.contains("lightbox-img")) {
+        const isClickableImage =
+          target.closest(".theory-card") ||
+          target.closest(".trick-card") ||
+          target.closest(".saved-point-card") ||
+          target.closest(".rich-editable-area") ||
+          target.classList.contains("rich-editor-image");
+
+        if (isClickableImage) {
+          const src = target.getAttribute("src");
+          if (src && lightboxModal && lightboxImg) {
+            lightboxImg.src = src;
+            lightboxImg.alt = target.getAttribute("alt") || "Enlarged Image";
+            lightboxModal.style.display = "flex";
+          }
+        }
+      }
+    });
+
+    // Close lightbox on Escape key
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && lightboxModal && lightboxModal.style.display === "flex") {
+        closeLightbox();
+      }
+    });
   }
 
   async triggerManualSync() {
@@ -706,6 +753,8 @@ class AppController {
     if (this.noteModal) this.noteModal.style.display = "none";
     if (this.mindMapModal) this.mindMapModal.style.display = "none";
     if (this.duplicateTopicModal) this.duplicateTopicModal.style.display = "none";
+    const lightboxModal = document.getElementById("imageLightboxModal");
+    if (lightboxModal) lightboxModal.style.display = "none";
 
     if (triggerHistoryBack && window.history.state && window.history.state.isModal) {
       this._ignoreNextPopstate = true;
@@ -735,8 +784,9 @@ class AppController {
 
   populateModalUnitOptions(selectElement, defaultUnitId) {
     const paperData = store.getCurrentPaperData();
-    let html = "";
+    let html = `<option value="general" ${defaultUnitId === "general" ? "selected" : ""}>📌 General Points</option>`;
     paperData.units.forEach(u => {
+      if (u.id === "general") return;
       const selected = u.id === defaultUnitId ? "selected" : "";
       html += `<option value="${u.id}" ${selected}>Unit ${u.unitNumber}: ${escapeHtml(u.name)}</option>`;
     });
@@ -746,7 +796,7 @@ class AppController {
   openAddTheoryModal() {
     const state = store.getState();
     const paperData = store.getCurrentPaperData();
-    const defaultUnitId = state.selectedUnitId !== "all" ? state.selectedUnitId : paperData.units[0].id;
+    const defaultUnitId = state.selectedUnitId !== "all" ? state.selectedUnitId : "general";
 
     this.populateModalUnitOptions(this.theoryModalUnitSelect, defaultUnitId);
     this.theoryModalTitle.textContent = "➕ Add Theory Topic";
@@ -826,7 +876,7 @@ class AppController {
       if (updated) {
         if (oldUnitId && oldUnitId !== unitId) {
           const newUnit = store.getCurrentPaperData().units.find(u => u.id === unitId);
-          const uLabel = newUnit ? `Unit ${newUnit.unitNumber}` : "new unit";
+          const uLabel = newUnit ? (newUnit.id === "general" ? "General Points" : `Unit ${newUnit.unitNumber}`) : "new unit";
           showToast(`Topic updated and moved to ${uLabel}!`, "success");
         } else {
           showToast("Theory topic updated successfully!", "success");
@@ -849,7 +899,7 @@ class AppController {
   openAddTrickModal() {
     const state = store.getState();
     const paperData = store.getCurrentPaperData();
-    const defaultUnitId = state.selectedUnitId !== "all" ? state.selectedUnitId : paperData.units[0].id;
+    const defaultUnitId = state.selectedUnitId !== "all" ? state.selectedUnitId : "general";
 
     this.populateModalUnitOptions(this.trickModalUnitSelect, defaultUnitId);
     this.trickModalTitle.textContent = "➕ Add Short Trick";
@@ -925,7 +975,7 @@ class AppController {
       if (updated) {
         if (oldUnitId && oldUnitId !== unitId) {
           const newUnit = store.getCurrentPaperData().units.find(u => u.id === unitId);
-          const uLabel = newUnit ? `Unit ${newUnit.unitNumber}` : "new unit";
+          const uLabel = newUnit ? (newUnit.id === "general" ? "General Points" : `Unit ${newUnit.unitNumber}`) : "new unit";
           showToast(`Trick updated and moved to ${uLabel}!`, "success");
         } else {
           showToast("Trick updated successfully!", "success");
@@ -947,8 +997,9 @@ class AppController {
 
   populateNoteModalUnitOptions(selectElement, defaultUnitId) {
     const paperData = store.getCurrentPaperData();
-    let html = `<option value="general" ${defaultUnitId === "general" || !defaultUnitId ? "selected" : ""}>General Points</option>`;
+    let html = `<option value="general" ${defaultUnitId === "general" || !defaultUnitId ? "selected" : ""}>📌 General Points</option>`;
     paperData.units.forEach(u => {
+      if (u.id === "general") return;
       const selected = u.id === defaultUnitId ? "selected" : "";
       html += `<option value="${u.id}" ${selected}>Unit ${u.unitNumber}: ${escapeHtml(u.name)}</option>`;
     });
@@ -1354,8 +1405,11 @@ class AppController {
     }
 
     let optionsHtml = `<option value="all">${allLabel}</option>`;
+    const isGenSelected = state.selectedUnitId === "general" ? "selected" : "";
+    optionsHtml += `<option value="general" ${isGenSelected}>📌 General Points</option>`;
 
     paperData.units.forEach(u => {
+      if (u.id === "general") return;
       const selected = state.selectedUnitId === u.id ? "selected" : "";
       let unitLabel = `Unit ${u.unitNumber}: ${escapeHtml(u.name)}`;
       if (isQuestions) {
@@ -1371,8 +1425,9 @@ class AppController {
     // Notepad form unit select
     const formUnitSelect = document.getElementById("noteUnitSelect");
     if (formUnitSelect) {
-      let formHtml = `<option value="general">General Points</option>`;
+      let formHtml = `<option value="general">📌 General Points</option>`;
       paperData.units.forEach(u => {
+        if (u.id === "general") return;
         formHtml += `<option value="${u.id}">Unit ${u.unitNumber}: ${escapeHtml(u.name)}</option>`;
       });
       formUnitSelect.innerHTML = formHtml;
@@ -1412,14 +1467,15 @@ class AppController {
     unitsList.forEach(u => {
       const theoryCount = u.theoryNotes ? u.theoryNotes.length : 0;
       const tricksCount = u.shortTricks ? u.shortTricks.length : 0;
-      const questionsCount = questionsManager.getUnitQuestionCount(state.activePaper, u.id);
+      const isGeneral = u.id === "general";
+      const unitTag = isGeneral ? "📌 General Points" : `Unit ${u.unitNumber}`;
 
       html += `
         <div class="unit-card">
           <div class="unit-card-header">
-            <div class="unit-icon">${u.icon || "📚"}</div>
+            <div class="unit-icon">${u.icon || (isGeneral ? "📌" : "📚")}</div>
             <div class="unit-info">
-              <span class="unit-number-tag">Unit ${u.unitNumber}</span>
+              <span class="unit-number-tag">${unitTag}</span>
               <h3 class="unit-title">${escapeHtml(u.name)}</h3>
             </div>
           </div>
@@ -1430,9 +1486,10 @@ class AppController {
             <button class="unit-action-btn btn-go-tricks" data-unit-id="${u.id}">
               💡 Tricks (${tricksCount})
             </button>
+            ${!isGeneral ? `
             <button class="unit-action-btn btn-go-questions" data-unit-id="${u.id}">
-              🎯 PYQs (${questionsCount})
-            </button>
+              🎯 PYQs (${questionsManager.getUnitQuestionCount(state.activePaper, u.id)})
+            </button>` : ''}
           </div>
         </div>
       `;
@@ -1524,7 +1581,7 @@ class AppController {
       html += `
         <div class="theory-card" data-topic-id="${item.id}">
           <div class="theory-card-top">
-            <span class="theory-unit-label">Unit ${item.unitNumber}: ${escapeHtml(item.unitName)}</span>
+            <span class="theory-unit-label">${item.unitId === "general" ? "📌 General Points" : `Unit ${item.unitNumber}: ${escapeHtml(item.unitName)}`}</span>
             <div class="card-action-btns">
               <button class="card-btn-action btn-toggle-mindmap" data-topic-id="${item.id}" title="Toggle Exam Mind Map & Diagram">
                 🗺️ Mind Map
@@ -1807,7 +1864,7 @@ class AppController {
         <div class="trick-card theme-${colorTheme}" data-trick-id="${tr.id}">
           <div class="trick-header">
             <div>
-              <span class="trick-unit-tag">Unit ${tr.unitNumber}: ${escapeHtml(tr.unitName)}</span>
+              <span class="trick-unit-tag">${tr.unitId === "general" ? "📌 General Points" : `Unit ${tr.unitNumber}: ${escapeHtml(tr.unitName)}`}</span>
               <h3 class="trick-title">${escapeHtml(tr.title)}</h3>
             </div>
             <div class="card-action-btns">
