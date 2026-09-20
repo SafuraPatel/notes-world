@@ -71,12 +71,12 @@ exports.handler = async (event, context) => {
         if (blobStore) {
           binData = await blobStore.get("recycle_bin", { type: "json" });
         } else {
-          binData = memoryStore.get("recycle_bin") || [];
+          binData = memoryStore.has("recycle_bin") ? memoryStore.get("recycle_bin") : null;
         }
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({ success: true, bin: binData || [] })
+          body: JSON.stringify({ success: true, bin: binData })
         };
       }
 

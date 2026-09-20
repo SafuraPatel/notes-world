@@ -59,14 +59,27 @@ export class BinManager {
       });
       if (res.ok) {
         const json = await res.json();
-        if (json && json.success && Array.isArray(json.bin)) {
-          const currentStr = JSON.stringify(this.items);
-          const incomingStr = JSON.stringify(json.bin);
-          if (currentStr !== incomingStr) {
-            this.items = json.bin;
-            localStorage.setItem(STORAGE_KEY, incomingStr);
-            this.notify();
-            return true;
+        if (json && json.success) {
+          if (json.bin === null) {
+            // Cloud DB not initialized for bin yet; seed it if local has items
+            if (this.items.length > 0) {
+              this.syncToCloud();
+            }
+          } else if (Array.isArray(json.bin)) {
+            // If incoming is empty but local has items and user hasn't explicitly emptied bin, seed cloud
+            if (json.bin.length === 0 && this.items.length > 0 && !localStorage.getItem(STORAGE_KEY + "_emptied")) {
+              this.syncToCloud();
+              return false;
+            }
+
+            const currentStr = JSON.stringify(this.items);
+            const incomingStr = JSON.stringify(json.bin);
+            if (currentStr !== incomingStr) {
+              this.items = json.bin;
+              localStorage.setItem(STORAGE_KEY, incomingStr);
+              this.notify();
+              return true;
+            }
           }
         }
       }
@@ -116,6 +129,7 @@ export class BinManager {
    * Add a deleted item to the Recycle Bin
    */
   addItem({ type, typeName, paper, unitId, unitName, title, data }) {
+    localStorage.removeItem(STORAGE_KEY + "_emptied");
     const entry = {
       id: "bin_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
       originalId: data ? data.id : null,
@@ -181,6 +195,7 @@ export class BinManager {
   emptyBin(paper = "all") {
     if (paper === "all") {
       this.items = [];
+      localStorage.setItem(STORAGE_KEY + "_emptied", Date.now().toString());
     } else {
       this.items = this.items.filter(it => it.paper !== paper);
     }

@@ -153,6 +153,7 @@ class AppController {
     this.btnEmptyBin = document.getElementById("btnEmptyBin");
     this.binSearchInput = document.getElementById("binSearchInput");
     this.binItemsContainer = document.getElementById("binItemsContainer");
+    this.binPaperFilter = "all";
     this.binTypeFilter = "all";
     this.binSearchQuery = "";
 
@@ -567,35 +568,18 @@ class AppController {
         if (this._onDuplicateCancel) this._onDuplicateCancel();
       });
     }
-    if (this.btnConfirmDuplicateUpdate) {
-      this.btnConfirmDuplicateUpdate.addEventListener("click", () => {
-        this.closeDuplicateModal();
-        if (this._onDuplicateConfirm) this._onDuplicateConfirm();
-      });
-    }
 
     // Check duplicate when topic title input loses focus (blur)
     if (this.theoryModalTopicTitle) {
       this.theoryModalTopicTitle.addEventListener("blur", () => {
         const title = this.theoryModalTopicTitle.value.trim();
         const topicId = this.theoryModalTopicId.value;
-        if (!title || topicId) return;
+        if (!title) return;
 
         const state = store.getState();
-        const existing = dataManager.findTheoryTopicByTitle(state.activePaper, title);
+        const existing = dataManager.findTheoryTopicByTitle(state.activePaper, title, topicId || null);
         if (existing) {
-          this.showDuplicateTopicPrompt({
-            title,
-            unitTitle: existing.unit.name || existing.unit.title,
-            onConfirmUpdate: () => {
-              this.openEditTheoryModal(existing.topic.id);
-              showToast(`Loaded "${existing.topic.title}" for editing.`, "info");
-            },
-            onCancel: () => {
-              this.theoryModalTopicTitle.focus();
-              this.theoryModalTopicTitle.select();
-            }
-          });
+          showToast(`⚠️ Topic "${title}" already exists in ${existing.unit.name || existing.unit.title}. Duplicates not allowed.`, "warning");
         }
       });
     }
@@ -603,20 +587,31 @@ class AppController {
     // Bin: Empty Bin Button
     if (this.btnEmptyBin) {
       this.btnEmptyBin.addEventListener("click", () => {
-        const state = store.getState();
-        const count = binManager.getCount(state.activePaper);
+        const filter = this.binPaperFilter || "all";
+        const count = binManager.getCount(filter);
         if (count === 0) {
           showToast("Recycle Bin is already empty.", "info");
           return;
         }
-        if (confirm(`Permanently delete all ${count} item(s) from the Recycle Bin? This action cannot be undone.`)) {
-          binManager.emptyBin(state.activePaper);
+        const scopeStr = filter === "all" ? "all" : filter === "paper1" ? "Paper 1" : "Paper 2";
+        if (confirm(`Permanently delete ${count} ${scopeStr} item(s) from the Recycle Bin? This action cannot be undone.`)) {
+          binManager.emptyBin(filter);
           showToast("Recycle Bin emptied.", "info");
         }
       });
     }
 
-    // Bin: Filter Pills
+    // Bin: Paper Filter Pills
+    document.querySelectorAll(".bin-paper-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".bin-paper-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        this.binPaperFilter = btn.getAttribute("data-paper") || "all";
+        this.renderBinSection();
+      });
+    });
+
+    // Bin: Type Filter Pills
     document.querySelectorAll(".bin-filter-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         document.querySelectorAll(".bin-filter-btn").forEach(b => b.classList.remove("active"));
@@ -727,12 +722,11 @@ class AppController {
     }
   }
 
-  showDuplicateTopicPrompt({ title, unitTitle, onConfirmUpdate, onCancel }) {
-    this._onDuplicateConfirm = onConfirmUpdate;
+  showDuplicateTopicPrompt({ title, unitTitle, onCancel }) {
     this._onDuplicateCancel = onCancel;
 
     if (this.duplicateModalMessage) {
-      this.duplicateModalMessage.innerHTML = `The topic <strong>"${escapeHtml(title)}"</strong> already exists in <em>${escapeHtml(unitTitle)}</em>.<br><br>Would you like to update this existing topic?`;
+      this.duplicateModalMessage.innerHTML = `The topic <strong>"${escapeHtml(title)}"</strong> already exists in <em>${escapeHtml(unitTitle)}</em>.<br><br>Duplicate topics are not allowed in the same paper. Please choose a different topic title.`;
     }
 
     if (this.modalOverlay) this.modalOverlay.style.display = "block";
@@ -790,7 +784,8 @@ class AppController {
         this.theoryModalEditor.clear();
       }
     }
-    this.theoryModalUnitSelect.disabled = true;
+    // Allow changing the unit while editing!
+    this.theoryModalUnitSelect.disabled = false;
 
     this.pushModalState("editTheory");
     this.modalOverlay.style.display = "block";
@@ -810,31 +805,42 @@ class AppController {
       return;
     }
 
-    // Check duplicate topic title
+    // Check duplicate topic title: strictly do not allow duplicate topics
     const existing = dataManager.findTheoryTopicByTitle(state.activePaper, title, topicId || null);
     if (existing) {
       this.showDuplicateTopicPrompt({
         title,
         unitTitle: existing.unit.name || existing.unit.title,
-        onConfirmUpdate: () => {
-          dataManager.updateTheoryTopic(state.activePaper, existing.topic.id, { title, content });
-          showToast(`Topic "${title}" updated successfully!`, "success");
-          this.closeAllModals();
-        },
         onCancel: () => {
           this.theoryModalTopicTitle.focus();
-          showToast("Duplicate prevented. Please choose a different topic name.", "info");
+          this.theoryModalTopicTitle.select();
         }
       });
       return;
     }
 
     if (topicId) {
-      dataManager.updateTheoryTopic(state.activePaper, topicId, { title, content });
-      showToast("Theory topic updated successfully!", "success");
+      const match = dataManager.getTheoryTopic(state.activePaper, topicId);
+      const oldUnitId = match ? match.unit.id : null;
+      const updated = dataManager.updateTheoryTopic(state.activePaper, topicId, { unitId, title, content });
+      if (updated) {
+        if (oldUnitId && oldUnitId !== unitId) {
+          const newUnit = store.getCurrentPaperData().units.find(u => u.id === unitId);
+          const uLabel = newUnit ? `Unit ${newUnit.unitNumber}` : "new unit";
+          showToast(`Topic updated and moved to ${uLabel}!`, "success");
+        } else {
+          showToast("Theory topic updated successfully!", "success");
+        }
+      } else {
+        showToast("Could not update topic.", "error");
+      }
     } else {
-      dataManager.addTheoryTopic(state.activePaper, unitId, { title, content });
-      showToast("New theory topic added!", "success");
+      const added = dataManager.addTheoryTopic(state.activePaper, unitId, { title, content });
+      if (added) {
+        showToast("New theory topic added!", "success");
+      } else {
+        showToast("Could not add topic. Duplicate title exists.", "warning");
+      }
     }
 
     this.closeAllModals();
@@ -879,7 +885,8 @@ class AppController {
       this.trickModalExplanationEditor.setHtml(trick.explanation || "");
     }
     this.trickModalProTip.value = trick.proTip || "";
-    this.trickModalUnitSelect.disabled = true;
+    // Allow changing unit while editing!
+    this.trickModalUnitSelect.disabled = false;
 
     this.pushModalState("editTrick");
     this.modalOverlay.style.display = "block";
@@ -902,33 +909,37 @@ class AppController {
       return;
     }
 
-    // Check duplicate trick
-    if (!trickId) {
-      const existingTrick = dataManager.findTrickByTitle(state.activePaper, title);
-      if (existingTrick) {
-        this.showDuplicateTopicPrompt({
-          title,
-          unitTitle: existingTrick.unit.name || existingTrick.unit.title,
-          onConfirmUpdate: () => {
-            dataManager.updateTrick(state.activePaper, existingTrick.trick.id, { title, lightbulb, mnemonic, explanation, proTip });
-            showToast(`Trick "${title}" updated successfully!`, "success");
-            this.closeAllModals();
-          },
-          onCancel: () => {
-            this.trickModalTitleInput.focus();
-            showToast("Please choose a different trick title.", "info");
-          }
-        });
-        return;
-      }
+    // Check duplicate trick: strictly prevent duplicates
+    const existingTrick = dataManager.findTrickByTitle(state.activePaper, title, trickId || null);
+    if (existingTrick) {
+      showToast(`A trick titled "${title}" already exists in ${existingTrick.unit.name || existingTrick.unit.title}! Duplicates not allowed.`, "warning");
+      this.trickModalTitleInput.focus();
+      this.trickModalTitleInput.select();
+      return;
     }
 
     if (trickId) {
-      dataManager.updateTrick(state.activePaper, trickId, { title, lightbulb, mnemonic, explanation, proTip });
-      showToast("Trick updated successfully!", "success");
+      const match = dataManager.getTrick(state.activePaper, trickId);
+      const oldUnitId = match ? match.unit.id : null;
+      const updated = dataManager.updateTrick(state.activePaper, trickId, { unitId, title, lightbulb, mnemonic, explanation, proTip });
+      if (updated) {
+        if (oldUnitId && oldUnitId !== unitId) {
+          const newUnit = store.getCurrentPaperData().units.find(u => u.id === unitId);
+          const uLabel = newUnit ? `Unit ${newUnit.unitNumber}` : "new unit";
+          showToast(`Trick updated and moved to ${uLabel}!`, "success");
+        } else {
+          showToast("Trick updated successfully!", "success");
+        }
+      } else {
+        showToast("Could not update trick.", "error");
+      }
     } else {
-      dataManager.addTrick(state.activePaper, unitId, { title, lightbulb, mnemonic, explanation, proTip });
-      showToast("New trick added successfully!", "success");
+      const added = dataManager.addTrick(state.activePaper, unitId, { title, lightbulb, mnemonic, explanation, proTip });
+      if (added) {
+        showToast("New trick added successfully!", "success");
+      } else {
+        showToast("Could not add trick. Duplicate title exists.", "warning");
+      }
     }
 
     this.closeAllModals();
@@ -993,6 +1004,15 @@ class AppController {
       return;
     }
 
+    const state = store.getState();
+    const existing = notesManager.findNoteByTitle(state.activePaper, title, noteId);
+    if (existing) {
+      showToast(`A study point titled "${title}" already exists! Duplicates not allowed.`, "warning");
+      this.noteModalTitleInput.focus();
+      this.noteModalTitleInput.select();
+      return;
+    }
+
     const unitId = unitSelect.value;
     const unitName = unitSelect.options[unitSelect.selectedIndex]?.text || "General Points";
 
@@ -1028,21 +1048,12 @@ class AppController {
     const unitId = unitSelect.value;
     const unitName = unitSelect.options[unitSelect.selectedIndex]?.text || "General";
 
-    // Duplicate check for study point
+    // Duplicate check for study point: strictly prevent duplicates
     const existingNote = notesManager.findNoteByTitle(state.activePaper, title);
     if (existingNote) {
-      this.showDuplicateTopicPrompt({
-        title,
-        unitTitle: existingNote.unitName,
-        onConfirmUpdate: () => {
-          this.openEditNoteModal(existingNote.id);
-          showToast(`Loaded "${existingNote.title}" for editing.`, "info");
-        },
-        onCancel: () => {
-          titleInput.focus();
-          showToast("Please choose a different point title.", "info");
-        }
-      });
+      showToast(`A study point titled "${title}" already exists! Duplicates not allowed.`, "warning");
+      titleInput.focus();
+      titleInput.select();
       return;
     }
 
@@ -1989,19 +2000,21 @@ class AppController {
 
   renderBinSection() {
     if (!this.binItemsContainer) return;
-    const state = store.getState();
+    const paperFilter = this.binPaperFilter || "all";
+    const typeFilter = this.binTypeFilter || "all";
+    const searchQuery = this.binSearchQuery || "";
 
     const items = binManager.getItems({
-      paper: state.activePaper,
-      type: this.binTypeFilter || "all",
-      searchQuery: this.binSearchQuery || ""
+      paper: paperFilter,
+      type: typeFilter,
+      searchQuery: searchQuery
     });
 
     this.updateBinBadge();
 
     if (items.length === 0) {
       let emptyMsg = "Items you delete from Theory, Tricks, or Notepad will safely appear here.";
-      if (this.binSearchQuery || (this.binTypeFilter && this.binTypeFilter !== "all")) {
+      if (searchQuery || (typeFilter && typeFilter !== "all") || (paperFilter && paperFilter !== "all")) {
         emptyMsg = "No deleted items match your search or filter.";
       }
       this.binItemsContainer.innerHTML = `
@@ -2017,7 +2030,7 @@ class AppController {
     let html = "";
     items.forEach(it => {
       const dateStr = this.formatRelativeTime(it.deletedAt);
-      const paperBadge = it.paper === "paper1" ? "P1" : "P2";
+      const paperBadge = it.paper === "paper1" ? "Paper 1" : "Paper 2";
 
       let preview = "";
       if (it.data) {
@@ -2036,7 +2049,7 @@ class AppController {
           <div class="bin-card-header">
             <div class="bin-card-tags">
               <span class="bin-type-pill ${it.type}">${escapeHtml(it.typeName || it.type)}</span>
-              <span class="bin-paper-pill">${paperBadge}</span>
+              <span class="bin-paper-pill ${it.paper}">${paperBadge}</span>
               ${it.unitName ? `<span class="bin-unit-pill" title="${escapeHtml(it.unitName)}">${escapeHtml(it.unitName)}</span>` : ""}
             </div>
             <span class="bin-deleted-time" title="${escapeHtml(new Date(it.deletedAt).toLocaleString())}">🕒 ${dateStr}</span>
@@ -2065,7 +2078,12 @@ class AppController {
         const binId = btn.getAttribute("data-bin-id");
         const restored = binManager.restoreItem(binId);
         if (restored) {
-          showToast(`Restored "${restored.title}" successfully!`, "success");
+          const pName = restored.paper === "paper1" ? "Paper 1" : "Paper 2";
+          const uName = restored.unitName ? ` (${restored.unitName})` : "";
+          showToast(`Restored "${restored.title}" to ${pName}${uName}!`, "success");
+          this.render();
+        } else {
+          showToast("Failed to restore item.", "error");
         }
       });
     });
@@ -2085,13 +2103,14 @@ class AppController {
   }
 
   updateBinBadge() {
-    const state = store.getState();
-    const count = binManager.getCount(state.activePaper);
+    const totalCount = binManager.getCount("all");
+    const paperFilter = this.binPaperFilter || "all";
+    const filteredCount = binManager.getCount(paperFilter);
     if (this.tabBinCountBadge) {
-      this.tabBinCountBadge.textContent = `(${count})`;
+      this.tabBinCountBadge.textContent = `(${totalCount})`;
     }
     if (this.binCountBadge) {
-      this.binCountBadge.textContent = `${count} ${count === 1 ? "Item" : "Items"}`;
+      this.binCountBadge.textContent = `${filteredCount} ${filteredCount === 1 ? "Item" : "Items"}`;
     }
   }
 

@@ -56,7 +56,7 @@ class NotesWorldHandler(SimpleHTTPRequestHandler):
                 return
 
             if "type" in query and "bin" in query["type"]:
-                bin_items = db.get("recycle_bin", [])
+                bin_items = db.get("recycle_bin", None)
                 response = {"success": True, "bin": bin_items}
                 self.wfile.write(json.dumps(response).encode("utf-8"))
                 return

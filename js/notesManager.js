@@ -21,7 +21,17 @@ export class NotesManager {
     try {
       const data = localStorage.getItem(STORAGE_KEY);
       if (data) {
-        return JSON.parse(data);
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed)) {
+          // Deduplicate notes by paper and title
+          const seen = new Set();
+          return parsed.filter(n => {
+            const key = `${n.paper || "paper1"}_${(n.title || "").trim().toLowerCase()}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+        }
       }
     } catch (e) {
       console.error("Failed to load points from localStorage:", e);
@@ -145,12 +155,19 @@ export class NotesManager {
   }
 
   addNote({ paper, unitId, unitName, title, content, color = "#6366f1" }) {
+    const cleanTitle = (title || "").trim() || "My Point";
+    const existing = this.findNoteByTitle(paper, cleanTitle);
+    if (existing) {
+      console.warn(`Duplicate note title blocked: "${cleanTitle}"`);
+      return null;
+    }
+
     const newNote = {
       id: "point_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
       paper,
       unitId,
       unitName,
-      title: title.trim() || "My Point",
+      title: cleanTitle,
       content: content.trim(),
       color,
       createdAt: new Date().toISOString(),
@@ -164,7 +181,15 @@ export class NotesManager {
   updateNote(id, { title, content, unitId, unitName, color }) {
     const note = this.notes.find(n => n.id === id);
     if (note) {
-      if (title !== undefined) note.title = title.trim() || "My Point";
+      if (title !== undefined) {
+        const cleanTitle = title.trim() || "My Point";
+        const existing = this.findNoteByTitle(note.paper, cleanTitle, id);
+        if (existing) {
+          console.warn(`Cannot update to duplicate note title: "${cleanTitle}"`);
+          return null;
+        }
+        note.title = cleanTitle;
+      }
       if (content !== undefined) note.content = content.trim();
       if (unitId !== undefined) note.unitId = unitId;
       if (unitName !== undefined) note.unitName = unitName;

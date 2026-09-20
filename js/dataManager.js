@@ -39,12 +39,56 @@ export class DataManager {
     }, 15000);
   }
 
+  deduplicatePaperUnits(paperObj) {
+    if (!paperObj || !paperObj.units) return 0;
+    const seenTheory = new Set();
+    const seenTricks = new Set();
+    let removedCount = 0;
+
+    paperObj.units.forEach(unit => {
+      if (unit.theoryNotes && Array.isArray(unit.theoryNotes)) {
+        const uniqueTheory = [];
+        unit.theoryNotes.forEach(t => {
+          const key = (t.title || "").trim().toLowerCase();
+          if (key && seenTheory.has(key)) {
+            removedCount++;
+            return;
+          }
+          if (key) seenTheory.add(key);
+          uniqueTheory.push(t);
+        });
+        unit.theoryNotes = uniqueTheory;
+      }
+
+      if (unit.shortTricks && Array.isArray(unit.shortTricks)) {
+        const uniqueTricks = [];
+        unit.shortTricks.forEach(tr => {
+          const key = (tr.title || "").trim().toLowerCase();
+          if (key && seenTricks.has(key)) {
+            removedCount++;
+            return;
+          }
+          if (key) seenTricks.add(key);
+          uniqueTricks.push(tr);
+        });
+        unit.shortTricks = uniqueTricks;
+      }
+    });
+    return removedCount;
+  }
+
   initPaperData(paperId, storageKey, defaultData) {
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.units && parsed.units.length > 0) {
+          const removed = this.deduplicatePaperUnits(parsed);
+          if (removed > 0) {
+            try {
+              localStorage.setItem(storageKey, JSON.stringify(parsed));
+            } catch (_) {}
+          }
           return parsed;
         }
       }
@@ -91,6 +135,7 @@ export class DataManager {
           const json = await res.json();
           if (json && json.success) {
             if (json.data && json.data.units) {
+              this.deduplicatePaperUnits(json.data);
               const currentStr = JSON.stringify(this.data[paperId]);
               const incomingStr = JSON.stringify(json.data);
               if (currentStr !== incomingStr) {
@@ -160,13 +205,23 @@ export class DataManager {
   // --- THEORY TOPIC ACTIONS ---
 
   addTheoryTopic(paperId, unitId, { title, points, content, mindMap }) {
+    if (!title || !title.trim()) return null;
+    const cleanTitle = title.trim();
+
+    // Prevent duplicate topic titles within the same paper
+    const existing = this.findTheoryTopicByTitle(paperId, cleanTitle);
+    if (existing) {
+      console.warn(`Duplicate topic title blocked: "${cleanTitle}" already exists in ${existing.unit.name}`);
+      return null;
+    }
+
     const paper = this.data[paperId];
     const unit = paper.units.find(u => u.id === unitId) || paper.units[0];
     if (!unit.theoryNotes) unit.theoryNotes = [];
 
     const newTopic = {
       id: `custom_theory_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      title: title.trim(),
+      title: cleanTitle,
       points: points ? (Array.isArray(points) ? points.map(p => p.trim()).filter(Boolean) : [points]) : [],
       content: content || "",
       mindMap: mindMap || null
@@ -177,12 +232,25 @@ export class DataManager {
     return newTopic;
   }
 
-  updateTheoryTopic(paperId, topicId, { title, points, content, mindMap, diagram }) {
+  updateTheoryTopic(paperId, topicId, { unitId, title, points, content, mindMap, diagram }) {
     const paper = this.data[paperId];
-    for (const unit of paper.units) {
+    if (!paper || !paper.units) return null;
+
+    // Check duplicate if title is provided
+    if (title && title.trim()) {
+      const existing = this.findTheoryTopicByTitle(paperId, title.trim(), topicId);
+      if (existing) {
+        console.warn(`Cannot update to duplicate topic title: "${title.trim()}" (exists in ${existing.unit.name})`);
+        return null;
+      }
+    }
+
+    for (let uIdx = 0; uIdx < paper.units.length; uIdx++) {
+      const unit = paper.units[uIdx];
       if (unit.theoryNotes) {
-        const topic = unit.theoryNotes.find(t => t.id === topicId);
-        if (topic) {
+        const tIdx = unit.theoryNotes.findIndex(t => t.id === topicId);
+        if (tIdx !== -1) {
+          const topic = unit.theoryNotes[tIdx];
           if (title !== undefined) topic.title = title.trim();
           if (points !== undefined) {
             topic.points = Array.isArray(points) ? points.map(p => p.trim()).filter(Boolean) : (points ? [points] : []);
@@ -190,6 +258,19 @@ export class DataManager {
           if (content !== undefined) topic.content = content;
           if (mindMap !== undefined) topic.mindMap = mindMap;
           if (diagram !== undefined) topic.diagram = diagram;
+
+          // Check if user changed the unit while editing!
+          if (unitId && unitId !== unit.id) {
+            const targetUnit = paper.units.find(u => u.id === unitId);
+            if (targetUnit) {
+              // Remove topic from old unit
+              unit.theoryNotes.splice(tIdx, 1);
+              // Add topic to new unit at top
+              if (!targetUnit.theoryNotes) targetUnit.theoryNotes = [];
+              targetUnit.theoryNotes.unshift(topic);
+            }
+          }
+
           this.savePaperData(paperId);
           return topic;
         }
@@ -257,6 +338,12 @@ export class DataManager {
     if (!targetUnit) targetUnit = paper.units[0];
     if (!targetUnit.theoryNotes) targetUnit.theoryNotes = [];
 
+    // If another topic with this title was added while this was in bin, suffix it to prevent collision
+    const existingTitleMatch = this.findTheoryTopicByTitle(paperId, topicData.title, topicData.id);
+    if (existingTitleMatch) {
+      topicData.title = `${topicData.title} (Restored)`;
+    }
+
     // Avoid duplicate entry if same ID is restored multiple times
     const existingIdx = targetUnit.theoryNotes.findIndex(t => t.id === topicData.id);
     if (existingIdx !== -1) {
@@ -305,13 +392,23 @@ export class DataManager {
   }
 
   addTrick(paperId, unitId, { title, mnemonic, explanation, proTip, lightbulb }) {
+    if (!title || !title.trim()) return null;
+    const cleanTitle = title.trim();
+
+    // Prevent duplicate trick titles
+    const existing = this.findTrickByTitle(paperId, cleanTitle);
+    if (existing) {
+      console.warn(`Duplicate trick title blocked: "${cleanTitle}" already exists in ${existing.unit.name}`);
+      return null;
+    }
+
     const paper = this.data[paperId];
     const unit = paper.units.find(u => u.id === unitId) || paper.units[0];
     if (!unit.shortTricks) unit.shortTricks = [];
 
     const newTrick = {
       id: `custom_trick_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      title: title.trim(),
+      title: cleanTitle,
       mnemonic: (mnemonic || "").trim(),
       explanation: (explanation || "").trim(),
       proTip: (proTip || "").trim(),
@@ -323,17 +420,40 @@ export class DataManager {
     return newTrick;
   }
 
-  updateTrick(paperId, trickId, { title, mnemonic, explanation, proTip, lightbulb }) {
+  updateTrick(paperId, trickId, { unitId, title, mnemonic, explanation, proTip, lightbulb }) {
     const paper = this.data[paperId];
-    for (const unit of paper.units) {
+    if (!paper || !paper.units) return null;
+
+    if (title && title.trim()) {
+      const existing = this.findTrickByTitle(paperId, title.trim(), trickId);
+      if (existing) {
+        console.warn(`Cannot update to duplicate trick title: "${title.trim()}" (exists in ${existing.unit.name})`);
+        return null;
+      }
+    }
+
+    for (let uIdx = 0; uIdx < paper.units.length; uIdx++) {
+      const unit = paper.units[uIdx];
       if (unit.shortTricks) {
-        const trick = unit.shortTricks.find(tr => tr.id === trickId);
-        if (trick) {
+        const trIdx = unit.shortTricks.findIndex(tr => tr.id === trickId);
+        if (trIdx !== -1) {
+          const trick = unit.shortTricks[trIdx];
           if (title !== undefined) trick.title = title.trim();
           if (mnemonic !== undefined) trick.mnemonic = (mnemonic || "").trim();
           if (explanation !== undefined) trick.explanation = (explanation || "").trim();
           if (proTip !== undefined) trick.proTip = (proTip || "").trim();
           if (lightbulb !== undefined) trick.lightbulb = (lightbulb || "").trim();
+
+          // Check if user changed the unit while editing!
+          if (unitId && unitId !== unit.id) {
+            const targetUnit = paper.units.find(u => u.id === unitId);
+            if (targetUnit) {
+              unit.shortTricks.splice(trIdx, 1);
+              if (!targetUnit.shortTricks) targetUnit.shortTricks = [];
+              targetUnit.shortTricks.unshift(trick);
+            }
+          }
+
           this.savePaperData(paperId);
           return trick;
         }
@@ -365,6 +485,11 @@ export class DataManager {
     let targetUnit = paper.units.find(u => u.id === unitId);
     if (!targetUnit) targetUnit = paper.units[0];
     if (!targetUnit.shortTricks) targetUnit.shortTricks = [];
+
+    const existingTitleMatch = this.findTrickByTitle(paperId, trickData.title, trickData.id);
+    if (existingTitleMatch) {
+      trickData.title = `${trickData.title} (Restored)`;
+    }
 
     const existingIdx = targetUnit.shortTricks.findIndex(tr => tr.id === trickData.id);
     if (existingIdx !== -1) {

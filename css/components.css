@@ -3079,6 +3079,14 @@ u {
   margin-bottom: 1rem;
 }
 
+.bin-filters-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.bin-paper-pills,
 .bin-filter-pills {
   display: inline-flex;
   background: rgba(21, 28, 40, 0.7);
@@ -3089,11 +3097,13 @@ u {
   overflow-x: auto;
 }
 
+[data-theme="light"] .bin-paper-pills,
 [data-theme="light"] .bin-filter-pills {
   background: #f1f5f9;
   border-color: #cbd5e1;
 }
 
+.bin-paper-btn,
 .bin-filter-btn {
   background: transparent;
   border: none;
@@ -3107,11 +3117,13 @@ u {
   transition: all 0.2s ease;
 }
 
+.bin-paper-btn:hover,
 .bin-filter-btn:hover {
   color: var(--text-main);
   background: rgba(255, 255, 255, 0.08);
 }
 
+.bin-paper-btn.active,
 .bin-filter-btn.active {
   background: var(--accent-current);
   color: #ffffff;

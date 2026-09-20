@@ -253,11 +253,18 @@
 
         <!-- Bin Filter & Search Toolbar -->
         <div class="bin-controls-bar">
-          <div class="bin-filter-pills" role="tablist">
-            <button class="bin-filter-btn active" data-filter="all" type="button">All Items</button>
-            <button class="bin-filter-btn" data-filter="theory" type="button">📖 Theory</button>
-            <button class="bin-filter-btn" data-filter="trick" type="button">💡 Tricks</button>
-            <button class="bin-filter-btn" data-filter="note" type="button">📝 Points</button>
+          <div class="bin-filters-group">
+            <div class="bin-paper-pills" role="tablist" aria-label="Filter by Paper">
+              <button class="bin-paper-btn active" data-paper="all" type="button">All Papers</button>
+              <button class="bin-paper-btn" data-paper="paper1" type="button">Paper 1</button>
+              <button class="bin-paper-btn" data-paper="paper2" type="button">Paper 2</button>
+            </div>
+            <div class="bin-filter-pills" role="tablist" aria-label="Filter by Type">
+              <button class="bin-filter-btn active" data-filter="all" type="button">All Items</button>
+              <button class="bin-filter-btn" data-filter="theory" type="button">📖 Theory</button>
+              <button class="bin-filter-btn" data-filter="trick" type="button">💡 Tricks</button>
+              <button class="bin-filter-btn" data-filter="note" type="button">📝 Points</button>
+            </div>
           </div>
           <div class="bin-search-box">
             <span class="search-icon">🔍</span>
@@ -414,21 +421,20 @@
       </form>
     </div>
 
-    <!-- 5. Duplicate Topic Warning & Action Modal -->
+    <!-- 5. Duplicate Topic Warning Modal -->
     <div id="duplicateTopicModal" class="app-modal duplicate-confirm-modal" style="display: none;" role="dialog" aria-modal="true">
       <div class="modal-header">
         <h3 class="modal-title">⚠️ Topic Already Exists</h3>
         <button id="btnCloseDuplicateModal" class="modal-close-btn" type="button" aria-label="Close">✕</button>
       </div>
       <div class="duplicate-modal-body">
-        <div class="duplicate-icon-wrap">⚠️</div>
+        <div class="duplicate-icon-wrap">🚫</div>
         <p id="duplicateModalMessage" class="duplicate-modal-text">
-          A topic with this name already exists. Would you like to update the existing topic instead?
+          A topic with this title already exists in this paper. Duplicate topics are not allowed. Please choose a different topic title.
         </p>
       </div>
       <div class="modal-actions">
-        <button type="button" id="btnCancelDuplicateModal" class="btn-modal-cancel">✖️ No, Keep Writing</button>
-        <button type="button" id="btnConfirmDuplicateUpdate" class="btn-modal-save">✏️ Yes, Update It</button>
+        <button type="button" id="btnCancelDuplicateModal" class="btn-modal-save" style="width: 100%;">OK, I'll Change Name</button>
       </div>
     </div>
 
