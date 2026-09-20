@@ -355,7 +355,7 @@ class AppController {
     }
 
     if (this.stickyHeaderSummaryText) {
-      this.stickyHeaderSummaryText.textContent = `SMP • ${paperLabel}`;
+      this.stickyHeaderSummaryText.textContent = `SET / NET • ${paperLabel}`;
     }
     if (this.stickyActiveSectionBadge) {
       this.stickyActiveSectionBadge.textContent = sectionName;
@@ -733,7 +733,7 @@ class AppController {
       try {
         const a = document.createElement("a");
         a.href = lightboxImg.src;
-        a.download = lightboxImg.getAttribute("alt") ? `${lightboxImg.getAttribute("alt").replace(/[^a-z0-9]/gi, '_').toLowerCase()}.png` : "smp-study-image.png";
+        a.download = lightboxImg.getAttribute("alt") ? `${lightboxImg.getAttribute("alt").replace(/[^a-z0-9]/gi, '_').toLowerCase()}.png` : "set-net-study-image.png";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
