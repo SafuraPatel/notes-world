@@ -41,14 +41,21 @@ export class BinManager {
       }
     });
 
+    // Background polling every 60 seconds (lightweight)
     setInterval(() => {
       if (document.visibilityState === "visible") {
         this.syncFromCloud();
       }
-    }, 15000);
+    }, 60000);
   }
 
   async syncFromCloud() {
+    if (this._isSyncing) return false;
+    const now = Date.now();
+    if (this._lastSyncTime && (now - this._lastSyncTime < 25000)) {
+      return false; // Throttle redundant syncs within 25s
+    }
+    this._isSyncing = true;
     try {
       const res = await fetch(`/api/data?type=bin&_t=${Date.now()}`, {
         cache: "no-store",
@@ -85,6 +92,9 @@ export class BinManager {
       }
     } catch (e) {
       // Offline fallback
+    } finally {
+      this._lastSyncTime = Date.now();
+      this._isSyncing = false;
     }
     return false;
   }

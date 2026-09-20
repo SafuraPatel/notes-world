@@ -604,3 +604,10 @@
     padding: 0.5rem 0.6rem;
   }
 }
+
+/* Netlify Badge Zero-Cost Suppression (replaces JS layout-thrashing polling) */
+#netlify-badge, .netlify-badge, [data-netlify-badge], iframe[src*="netlify"] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}

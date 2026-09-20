@@ -32,11 +32,12 @@ export class DataManager {
       }
     });
 
+    // Background polling every 60s (lightweight & non-blocking)
     setInterval(() => {
       if (document.visibilityState === "visible") {
         this.syncFromCloud();
       }
-    }, 15000);
+    }, 60000);
   }
 
   deduplicatePaperUnits(paperObj) {
@@ -158,6 +159,12 @@ export class DataManager {
   }
 
   async syncFromCloud() {
+    if (this._isSyncing) return false;
+    const now = Date.now();
+    if (this._lastSyncTime && (now - this._lastSyncTime < 25000)) {
+      return false; // Prevent redundant requests within 25s
+    }
+    this._isSyncing = true;
     try {
       let hasUpdate = false;
       for (const paperId of ["paper1", "paper2"]) {
@@ -205,6 +212,9 @@ export class DataManager {
       }
     } catch (e) {
       // Offline fallback: continue using localStorage
+    } finally {
+      this._lastSyncTime = Date.now();
+      this._isSyncing = false;
     }
     return false;
   }

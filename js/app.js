@@ -458,9 +458,13 @@ class AppController {
       store.setSelectedUnitId(e.target.value);
     });
 
-    // Search input
+    // Search input with 150ms debounce for high-performance fluid typing
+    let searchDebounceTimer = null;
     this.globalSearchInput.addEventListener("input", (e) => {
-      store.setSearchQuery(e.target.value);
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => {
+        store.setSearchQuery(e.target.value);
+      }, 150);
     });
 
     // Create Note Form (Notepad)
@@ -621,11 +625,15 @@ class AppController {
       });
     });
 
-    // Bin: Live Search Input
+    // Bin: Live Search Input with 150ms debounce
     if (this.binSearchInput) {
+      let binSearchDebounce = null;
       this.binSearchInput.addEventListener("input", (e) => {
-        this.binSearchQuery = e.target.value.trim();
-        this.renderBinSection();
+        clearTimeout(binSearchDebounce);
+        binSearchDebounce = setTimeout(() => {
+          this.binSearchQuery = e.target.value.trim();
+          this.renderBinSection();
+        }, 150);
       });
     }
 
@@ -1599,19 +1607,33 @@ class AppController {
       this.binSection.style.display = state.activeSection === "bin" ? "flex" : "none";
     }
 
-    // Render Sub-components
+    // Render Sub-components: ONLY the active visible section for maximum performance!
     this.renderUnitDropdownOptions(paperData);
-    this.renderUnitsSection(paperData);
-    this.renderTheorySection(paperData);
-    this.renderTricksSection(paperData);
-    this.renderQuestionsSection();
+
+    switch (state.activeSection) {
+      case "units":
+        this.renderUnitsSection(paperData);
+        break;
+      case "theory":
+        this.renderTheorySection(paperData);
+        break;
+      case "tricks":
+        this.renderTricksSection(paperData);
+        break;
+      case "questions":
+        this.renderQuestionsSection(paperData);
+        break;
+      case "notepad":
+        this.renderNotepadSection();
+        break;
+      case "bin":
+        this.renderBinSection();
+        break;
+    }
+
     this.updateQuestionsBadge();
-    this.renderNotepadSection();
     this.updateNotesBadge();
     this.updateBinBadge();
-    if (state.activeSection === "bin") {
-      this.renderBinSection();
-    }
   }
 
   renderUnitDropdownOptions(paperData) {
@@ -1829,24 +1851,40 @@ class AppController {
 
           ${contentHtml}
 
-          <div id="mindmap-${item.id}" class="theory-mindmap-container" style="display: none;">
-            ${this.renderMindMapHtml(item)}
-          </div>
+          <div id="mindmap-${item.id}" class="theory-mindmap-container" style="display: none;"></div>
         </div>
       `;
     });
 
     this.theoryCardsContainer.innerHTML = html;
 
-    // Attach Toggle Mind Map events
+    // Attach Toggle Mind Map events (Lazy rendered on demand for 10x faster theory display)
     this.theoryCardsContainer.querySelectorAll(".btn-toggle-mindmap").forEach(btn => {
       btn.addEventListener("click", () => {
         const topicId = btn.getAttribute("data-topic-id");
         const mapContainer = document.getElementById(`mindmap-${topicId}`);
         if (!mapContainer) return;
         const isHidden = mapContainer.style.display === "none";
-        mapContainer.style.display = isHidden ? "flex" : "none";
-        btn.innerHTML = isHidden ? "✕ Close Map" : "🗺️ Mind Map";
+        if (isHidden) {
+          if (!mapContainer.hasChildNodes() || mapContainer.innerHTML.trim() === "") {
+            const item = allTheory.find(t => t.id === topicId) || dataManager.getTheoryTopic(state.activePaper, topicId);
+            if (item) {
+              mapContainer.innerHTML = this.renderMindMapHtml(item);
+              const editBtn = mapContainer.querySelector(".btn-edit-mindmap");
+              if (editBtn) {
+                editBtn.addEventListener("click", (e) => {
+                  e.stopPropagation();
+                  this.openEditMindMapModal(topicId);
+                });
+              }
+            }
+          }
+          mapContainer.style.display = "flex";
+          btn.innerHTML = "✕ Close Map";
+        } else {
+          mapContainer.style.display = "none";
+          btn.innerHTML = "🗺️ Mind Map";
+        }
       });
     });
 
@@ -2416,10 +2454,11 @@ class AppController {
 
   // --- QUESTIONS (PYQ) CONTROLLER ---
 
-  renderQuestionsSection() {
+  renderQuestionsSection(passedPaperData = null) {
     if (!this.questionsSection || !this.questionsCardsContainer) return;
 
     const state = store.getState();
+    const paperData = passedPaperData || store.getCurrentPaperData();
     const isP1 = state.activePaper === "paper1";
     if (this.questionsSectionTitle) {
       this.questionsSectionTitle.textContent = isP1
@@ -2653,18 +2692,14 @@ document.addEventListener("DOMContentLoaded", () => {
   window.appController = new AppController();
 });
 
-// Remove any injected "Powered by Netlify" badges
+// Remove any injected "Powered by Netlify" badges without recurring layout thrashing
 function purgeNetlifyBadge() {
   const elements = document.querySelectorAll(
-    '#netlify-badge, .netlify-badge, [data-netlify-badge], iframe[src*="netlify"], a[href*="netlify.com"]'
+    '#netlify-badge, .netlify-badge, [data-netlify-badge], iframe[src*="netlify"]'
   );
-  elements.forEach(el => {
-    const text = (el.innerText || el.textContent || "").toLowerCase();
-    if (text.includes("powered by netlify") || el.closest('#netlify-badge, [data-netlify-badge]')) {
-      el.remove();
-    }
-  });
+  elements.forEach(el => el.remove());
 }
 purgeNetlifyBadge();
-setInterval(purgeNetlifyBadge, 1500);
+setTimeout(purgeNetlifyBadge, 1200);
+setTimeout(purgeNetlifyBadge, 3500);
 

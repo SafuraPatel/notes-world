@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SET / NET</title>
+  <title>notes world</title>
   <meta name="description"
     content="SET / NET: Ultra-simple, mobile-first study portal for UGC NET and MH-SET. Essential Units, Theory bullet points, Short Tricks, and personal Notepad for Paper 1 and Paper 2 Computer Science.">
   <link rel="stylesheet" href="css/theme.css?v=3.0">
@@ -44,7 +44,8 @@
         <div class="header-actions">
           <button id="cloudSyncBtn" class="cloud-sync-btn" type="button" aria-label="Sync Cloud Data"
             title="Sync across devices">
-            <svg class="cloud-sync-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="cloud-sync-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M19 17.5H7a4.5 4.5 0 0 1-.8-8.93A5.5 5.5 0 0 1 17 8.5a4.5 4.5 0 0 1 2 9Z" />
               <path d="M9.8 12.8a2.5 2.5 0 0 1 4.4-1.2l.8-.8" />
               <polyline points="15 10.8 15 13 12.8 13" />
@@ -74,7 +75,8 @@
           <span class="tab-icon">💡</span>
           <span class="tab-label">Tricks</span>
         </button>
-        <button class="tab-btn" data-section="questions" type="button" role="tab" aria-label="Questions" title="Questions">
+        <button class="tab-btn" data-section="questions" type="button" role="tab" aria-label="Questions"
+          title="Questions">
           <span class="tab-icon">🎯</span>
           <span class="tab-label">Questions <span id="tabQuestionsCountBadge">(0)</span></span>
         </button>
@@ -332,12 +334,13 @@
         </div>
         <div class="modal-field">
           <label for="trickModalLightbulb">💡 Box Content (Direct Trick / Hook):</label>
-          <input type="text" id="trickModalLightbulb" class="modal-input" placeholder="e.g. Ramu Caca Please Samosa (Direct 💡 text)">
+          <input type="text" id="trickModalLightbulb" class="modal-input"
+            placeholder="e.g. Ramu Caca Please Samosa (Direct 💡 text)">
         </div>
         <div class="modal-field">
           <label for="trickModalMnemonic">Mnemonic / Shortcut Rule:</label>
-          <textarea id="trickModalMnemonic" class="modal-textarea" rows="2" placeholder="Full shortcut rule or memory formula..."
-            required></textarea>
+          <textarea id="trickModalMnemonic" class="modal-textarea" rows="2"
+            placeholder="Full shortcut rule or memory formula..." required></textarea>
         </div>
         <div class="modal-field">
           <label>Explanation &amp; Content:</label>
@@ -394,7 +397,8 @@
     </div>
 
     <!-- 4. Mind Map Editor Modal -->
-    <div id="mindMapModal" class="app-modal mindmap-editor-modal" style="display: none;" role="dialog" aria-modal="true">
+    <div id="mindMapModal" class="app-modal mindmap-editor-modal" style="display: none;" role="dialog"
+      aria-modal="true">
       <div class="modal-header">
         <h3 id="mindMapModalTitle" class="modal-title">🗺️ Edit Mind Map</h3>
         <button id="btnCloseMindMapModal" class="modal-close-btn" type="button" aria-label="Close">✕</button>
@@ -403,7 +407,8 @@
         <input type="hidden" id="mindMapTopicId" value="">
         <div class="modal-field">
           <label for="mindMapCentralTopic">Central Topic / Root Concept:</label>
-          <input type="text" id="mindMapCentralTopic" class="modal-input" placeholder="e.g. Computer Networks Architecture" required>
+          <input type="text" id="mindMapCentralTopic" class="modal-input"
+            placeholder="e.g. Computer Networks Architecture" required>
         </div>
         <div class="modal-field">
           <div class="mindmap-edit-header-row">
@@ -422,7 +427,8 @@
     </div>
 
     <!-- 5. Duplicate Topic Warning Modal -->
-    <div id="duplicateTopicModal" class="app-modal duplicate-confirm-modal" style="display: none;" role="dialog" aria-modal="true">
+    <div id="duplicateTopicModal" class="app-modal duplicate-confirm-modal" style="display: none;" role="dialog"
+      aria-modal="true">
       <div class="modal-header">
         <h3 class="modal-title">⚠️ Topic Already Exists</h3>
         <button id="btnCloseDuplicateModal" class="modal-close-btn" type="button" aria-label="Close">✕</button>
@@ -430,41 +436,74 @@
       <div class="duplicate-modal-body">
         <div class="duplicate-icon-wrap">🚫</div>
         <p id="duplicateModalMessage" class="duplicate-modal-text">
-          A topic with this title already exists in this paper. Duplicate topics are not allowed. Please choose a different topic title.
+          A topic with this title already exists in this paper. Duplicate topics are not allowed. Please choose a
+          different topic title.
         </p>
       </div>
       <div class="modal-actions">
-        <button type="button" id="btnCancelDuplicateModal" class="btn-modal-save" style="width: 100%;">OK, I'll Change Name</button>
+        <button type="button" id="btnCancelDuplicateModal" class="btn-modal-save" style="width: 100%;">OK, I'll Change
+          Name</button>
       </div>
     </div>
 
     <!-- 6. Fullscreen Image Lightbox Zoom Modal -->
-    <div id="imageLightboxModal" class="image-lightbox-modal" style="display: none;" role="dialog" aria-modal="true" aria-label="Image Zoom Viewer">
+    <div id="imageLightboxModal" class="image-lightbox-modal" style="display: none;" role="dialog" aria-modal="true"
+      aria-label="Image Zoom Viewer">
       <!-- Lightbox Floating Controls Toolbar -->
       <div class="lightbox-toolbar" id="lightboxToolbar" role="toolbar" aria-label="Image Zoom Controls">
-        <button id="btnLightboxZoomOut" class="lightbox-tool-btn" type="button" title="Zoom Out (- or scroll down)" aria-label="Zoom Out">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+        <button id="btnLightboxZoomOut" class="lightbox-tool-btn" type="button" title="Zoom Out (- or scroll down)"
+          aria-label="Zoom Out">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            <line x1="8" y1="11" x2="14" y2="11"></line>
+          </svg>
         </button>
-        <button id="btnLightboxZoomBadge" class="lightbox-zoom-badge" type="button" title="Click to Reset (100%)" aria-label="Reset zoom level">
+        <button id="btnLightboxZoomBadge" class="lightbox-zoom-badge" type="button" title="Click to Reset (100%)"
+          aria-label="Reset zoom level">
           <span id="lightboxZoomLevel">100%</span>
         </button>
-        <button id="btnLightboxZoomIn" class="lightbox-tool-btn" type="button" title="Zoom In (+ or scroll up)" aria-label="Zoom In">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+        <button id="btnLightboxZoomIn" class="lightbox-tool-btn" type="button" title="Zoom In (+ or scroll up)"
+          aria-label="Zoom In">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            <line x1="11" y1="8" x2="11" y2="14"></line>
+            <line x1="8" y1="11" x2="14" y2="11"></line>
+          </svg>
         </button>
         <div class="lightbox-tool-divider"></div>
-        <button id="btnLightboxReset" class="lightbox-tool-btn" type="button" title="Fit to Screen / Reset (0 or R)" aria-label="Reset zoom and position">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+        <button id="btnLightboxReset" class="lightbox-tool-btn" type="button" title="Fit to Screen / Reset (0 or R)"
+          aria-label="Reset zoom and position">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+            <path d="M3 3v5h5"></path>
+          </svg>
         </button>
-        <button id="btnLightboxRotate" class="lightbox-tool-btn" type="button" title="Rotate 90° Clockwise" aria-label="Rotate image">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        <button id="btnLightboxRotate" class="lightbox-tool-btn" type="button" title="Rotate 90° Clockwise"
+          aria-label="Rotate image">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+          </svg>
         </button>
-        <button id="btnLightboxDownload" class="lightbox-tool-btn" type="button" title="Download Image" aria-label="Download image">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        <button id="btnLightboxDownload" class="lightbox-tool-btn" type="button" title="Download Image"
+          aria-label="Download image">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
         </button>
       </div>
 
       <!-- Close Button -->
-      <button id="btnCloseLightbox" class="lightbox-close-btn" type="button" title="Close (Esc)" aria-label="Close">✕</button>
+      <button id="btnCloseLightbox" class="lightbox-close-btn" type="button" title="Close (Esc)"
+        aria-label="Close">✕</button>
 
       <!-- Usage Hint Badge -->
       <div class="lightbox-hint-badge" id="lightboxHintBadge">
