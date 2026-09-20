@@ -2473,11 +2473,14 @@ class AppController {
       const isCorrect = userAns ? userAns.isCorrect : false;
       const selectedOption = userAns ? userAns.selectedOption : null;
 
+      const matchedUnit = paperData.units.find(u => u.id === q.unitId);
+      const unitLabel = matchedUnit ? matchedUnit.name : q.unitName;
+
       html += `
         <div class="question-card" id="q_card_${q.id}" style="${isAnswered ? (isCorrect ? 'border-left-color: #10b981;' : 'border-left-color: #ef4444;') : ''}">
           <div class="question-card-header">
             <div class="question-tags">
-              <span class="question-unit-tag">Unit ${q.unitNumber}: ${escapeHtml(q.unitName)}</span>
+              <span class="question-unit-tag">Unit ${q.unitNumber}: ${escapeHtml(unitLabel)}</span>
               <span class="question-exam-tag">${escapeHtml(q.examSource)}</span>
             </div>
             ${isAnswered ? `<button class="btn-reset-question" data-qid="${q.id}" title="Re-attempt this question">↺ Re-try</button>` : ''}

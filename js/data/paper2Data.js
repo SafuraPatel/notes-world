@@ -12,7 +12,7 @@ export const paper2Data = {
     {
       "id": "p2-u1",
       "unitNumber": 1,
-      "name": "Discrete Structures & Optimization",
+      "name": "Math & Graph Theory",
       "icon": "🎲",
       "theoryNotes": [
         {
@@ -212,7 +212,7 @@ export const paper2Data = {
     {
       "id": "p2-u2",
       "unitNumber": 2,
-      "name": "Computer System Architecture",
+      "name": "Computer Architecture",
       "icon": "🖥️",
       "theoryNotes": [
         {
@@ -446,7 +446,7 @@ export const paper2Data = {
     {
       "id": "p2-u3",
       "unitNumber": 3,
-      "name": "Programming Languages & Computer Graphics",
+      "name": "Programming",
       "icon": "🎨",
       "theoryNotes": [
         {
@@ -633,7 +633,7 @@ export const paper2Data = {
     {
       "id": "p2-u4",
       "unitNumber": 4,
-      "name": "Database Management Systems (DBMS)",
+      "name": "DBMS",
       "icon": "🗄️",
       "theoryNotes": [
         {
@@ -835,7 +835,7 @@ export const paper2Data = {
     {
       "id": "p2-u5",
       "unitNumber": 5,
-      "name": "System Software & Operating System",
+      "name": "Operating System",
       "icon": "⚙️",
       "theoryNotes": [
         {
@@ -1042,7 +1042,7 @@ export const paper2Data = {
     {
       "id": "p2-u6",
       "unitNumber": 6,
-      "name": "Software Engineering",
+      "name": "Software Engineering (SE)",
       "icon": "🏗️",
       "theoryNotes": [
         {
@@ -1252,7 +1252,7 @@ export const paper2Data = {
     {
       "id": "p2-u7",
       "unitNumber": 7,
-      "name": "Data Communication & Computer Networks",
+      "name": "Computer Network",
       "icon": "🌐",
       "theoryNotes": [
         {
@@ -1443,7 +1443,7 @@ export const paper2Data = {
     {
       "id": "p2-u8",
       "unitNumber": 8,
-      "name": "Theory of Computation & Compilers",
+      "name": "Computation & Compiler",
       "icon": "⚙️",
       "theoryNotes": [
         {
@@ -1644,7 +1644,7 @@ export const paper2Data = {
     {
       "id": "p2-u9",
       "unitNumber": 9,
-      "name": "Data Science & Artificial Intelligence",
+      "name": "AI",
       "icon": "🤖",
       "theoryNotes": [
         {
@@ -1848,7 +1848,7 @@ export const paper2Data = {
     {
       "id": "p2-u10",
       "unitNumber": 10,
-      "name": "Algorithms & Advanced Computing",
+      "name": "Advanced Computing",
       "icon": "⚡",
       "theoryNotes": [
         {

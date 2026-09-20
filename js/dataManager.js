@@ -102,10 +102,24 @@ export class DataManager {
         if (parsed && parsed.units && parsed.units.length > 0) {
           const removed = this.deduplicatePaperUnits(parsed);
           this.ensureGeneralUnit(parsed);
-          if (removed > 0) {
+
+          // Update canonical unit names to short names while preserving user topics and tricks
+          let namesUpdated = false;
+          parsed.units.forEach(u => {
+            const defU = defaultData.units.find(du => du.id === u.id);
+            if (defU && defU.name && u.name !== defU.name) {
+              u.name = defU.name;
+              namesUpdated = true;
+            }
+          });
+
+          if (removed > 0 || namesUpdated) {
             try {
               localStorage.setItem(storageKey, JSON.stringify(parsed));
             } catch (_) {}
+            if (namesUpdated) {
+              this.syncToCloud(paperId);
+            }
           }
           return parsed;
         }
@@ -156,13 +170,27 @@ export class DataManager {
           if (json && json.success) {
             if (json.data && json.data.units) {
               this.deduplicatePaperUnits(json.data);
+              this.ensureGeneralUnit(json.data);
+              const defData = paperId === "paper1" ? defaultP1 : defaultP2;
+              let namesUpdated = false;
+              json.data.units.forEach(u => {
+                const defU = defData.units.find(du => du.id === u.id);
+                if (defU && defU.name && u.name !== defU.name) {
+                  u.name = defU.name;
+                  namesUpdated = true;
+                }
+              });
+
               const currentStr = JSON.stringify(this.data[paperId]);
               const incomingStr = JSON.stringify(json.data);
-              if (currentStr !== incomingStr) {
+              if (currentStr !== incomingStr || namesUpdated) {
                 this.data[paperId] = json.data;
                 const storageKey = paperId === "paper1" ? STORAGE_KEY_P1 : STORAGE_KEY_P2;
-                localStorage.setItem(storageKey, incomingStr);
+                localStorage.setItem(storageKey, JSON.stringify(json.data));
                 hasUpdate = true;
+                if (namesUpdated) {
+                  this.syncToCloud(paperId);
+                }
               }
             } else if (json.data === null) {
               // Cloud DB is not initialized for this paper yet, seed it from local

@@ -796,7 +796,7 @@ export const paper1Data = {
     {
       "id": "p1-u5",
       "unitNumber": 5,
-      "name": "Mathematical Reasoning & Aptitude",
+      "name": "Aptitude",
       "icon": "🔢",
       "theoryNotes": [
         {
@@ -971,7 +971,7 @@ export const paper1Data = {
     {
       "id": "p1-u6",
       "unitNumber": 6,
-      "name": "Logical Reasoning & Classical Indian Logic",
+      "name": "Logical Reasoning",
       "icon": "🧠",
       "theoryNotes": [
         {
@@ -1350,7 +1350,7 @@ export const paper1Data = {
     {
       "id": "p1-u8",
       "unitNumber": 8,
-      "name": "Information & Communication Technology (ICT)",
+      "name": "ICT",
       "icon": "💻",
       "theoryNotes": [
         {
@@ -1548,7 +1548,7 @@ export const paper1Data = {
     {
       "id": "p1-u9",
       "unitNumber": 9,
-      "name": "People, Development and Environment",
+      "name": "Environment",
       "icon": "🌿",
       "theoryNotes": [
         {
@@ -1784,7 +1784,7 @@ export const paper1Data = {
     {
       "id": "p1-u10",
       "unitNumber": 10,
-      "name": "Higher Education System",
+      "name": "Higher Education",
       "icon": "🏛️",
       "theoryNotes": [
         {
