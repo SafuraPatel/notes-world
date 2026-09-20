@@ -19,25 +19,20 @@ export class DataManager {
     };
     this.listeners = [];
 
-    // Automatically sync latest shared updates from Netlify Cloud DB on launch
-    this.syncFromCloud();
-    this.setupBackgroundSync();
+    // Deferred non-blocking sync: Allows instant UI render from localStorage
+    setTimeout(() => {
+      this.syncFromCloud();
+      this.setupBackgroundSync();
+    }, 2500);
   }
 
   setupBackgroundSync() {
-    window.addEventListener("focus", () => this.syncFromCloud());
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") {
-        this.syncFromCloud();
-      }
-    });
-
-    // Background polling every 60s (lightweight & non-blocking)
+    // Non-intrusive background polling every 5 minutes
     setInterval(() => {
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState === "visible" && navigator.onLine) {
         this.syncFromCloud();
       }
-    }, 60000);
+    }, 300000);
   }
 
   deduplicatePaperUnits(paperObj) {

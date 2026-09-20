@@ -178,14 +178,7 @@ class AppController {
     this.theoryModalTopicTitle = document.getElementById("theoryModalTopicTitle");
     this.btnCloseTheoryModal = document.getElementById("btnCloseTheoryModal");
     this.btnCancelTheoryModal = document.getElementById("btnCancelTheoryModal");
-    const theoryModalEditorBox = document.getElementById("theoryModalEditor");
-    if (theoryModalEditorBox) {
-      this.theoryModalEditor = new RichEditor({
-        container: theoryModalEditorBox,
-        placeholder: "Write or paste theory content here (No default bullets, paste as-is, bold, underline, color)...",
-        minHeight: 140
-      });
-    }
+    this.theoryModalEditor = null;
 
     // Trick Modal elements
     this.trickModalTitle = document.getElementById("trickModalTitle");
@@ -198,14 +191,7 @@ class AppController {
     this.trickModalProTip = document.getElementById("trickModalProTip");
     this.btnCloseTrickModal = document.getElementById("btnCloseTrickModal");
     this.btnCancelTrickModal = document.getElementById("btnCancelTrickModal");
-    const trickModalExpBox = document.getElementById("trickModalExplanationEditor");
-    if (trickModalExpBox) {
-      this.trickModalExplanationEditor = new RichEditor({
-        container: trickModalExpBox,
-        placeholder: "Write explanation, shortcut steps, or notes...",
-        minHeight: 100
-      });
-    }
+    this.trickModalExplanationEditor = null;
 
     // Note (Notepad) Modal elements
     this.noteModal = document.getElementById("noteModal");
@@ -217,14 +203,7 @@ class AppController {
     this.noteModalColorDots = document.getElementById("noteModalColorDots");
     this.btnCloseNoteModal = document.getElementById("btnCloseNoteModal");
     this.btnCancelNoteModal = document.getElementById("btnCancelNoteModal");
-    const noteModalEditorBox = document.getElementById("noteModalEditor");
-    if (noteModalEditorBox) {
-      this.noteModalEditor = new RichEditor({
-        container: noteModalEditorBox,
-        placeholder: "Write your study points and notes here...",
-        minHeight: 130
-      });
-    }
+    this.noteModalEditor = null;
 
     // Notepad Main Form Rich Editor
     const createNoteEditorBox = document.getElementById("createNoteEditor");
@@ -245,6 +224,48 @@ class AppController {
     this.btnAddMindMapBranch = document.getElementById("btnAddMindMapBranch");
     this.btnCloseMindMapModal = document.getElementById("btnCloseMindMapModal");
     this.btnCancelMindMapModal = document.getElementById("btnCancelMindMapModal");
+  }
+
+  getTheoryModalEditor() {
+    if (!this.theoryModalEditor) {
+      const box = document.getElementById("theoryModalEditor");
+      if (box) {
+        this.theoryModalEditor = new RichEditor({
+          container: box,
+          placeholder: "Write or paste theory content here (No default bullets, paste as-is, bold, underline, color)...",
+          minHeight: 140
+        });
+      }
+    }
+    return this.theoryModalEditor;
+  }
+
+  getTrickModalExplanationEditor() {
+    if (!this.trickModalExplanationEditor) {
+      const box = document.getElementById("trickModalExplanationEditor");
+      if (box) {
+        this.trickModalExplanationEditor = new RichEditor({
+          container: box,
+          placeholder: "Write explanation, shortcut steps, or notes...",
+          minHeight: 100
+        });
+      }
+    }
+    return this.trickModalExplanationEditor;
+  }
+
+  getNoteModalEditor() {
+    if (!this.noteModalEditor) {
+      const box = document.getElementById("noteModalEditor");
+      if (box) {
+        this.noteModalEditor = new RichEditor({
+          container: box,
+          placeholder: "Write your study points and notes here...",
+          minHeight: 130
+        });
+      }
+    }
+    return this.noteModalEditor;
   }
 
   initHistory() {
@@ -455,6 +476,9 @@ class AppController {
 
     // Unit filter dropdown
     this.unitSelectDropdown.addEventListener("change", (e) => {
+      this.theoryDisplayLimit = 25;
+      this.tricksDisplayLimit = 20;
+      this.questionsDisplayLimit = 15;
       store.setSelectedUnitId(e.target.value);
     });
 
@@ -466,6 +490,162 @@ class AppController {
         store.setSearchQuery(e.target.value);
       }, 150);
     });
+
+    // Delegated Events: Units List Container
+    if (this.unitsListContainer) {
+      this.unitsListContainer.addEventListener("click", (e) => {
+        const theoryBtn = e.target.closest(".btn-go-theory");
+        if (theoryBtn) {
+          this.theoryDisplayLimit = 25;
+          this.navigateToSection("theory", theoryBtn.getAttribute("data-unit-id"), true);
+          return;
+        }
+        const tricksBtn = e.target.closest(".btn-go-tricks");
+        if (tricksBtn) {
+          this.tricksDisplayLimit = 20;
+          this.navigateToSection("tricks", tricksBtn.getAttribute("data-unit-id"), true);
+          return;
+        }
+        const questionsBtn = e.target.closest(".btn-go-questions");
+        if (questionsBtn) {
+          this.questionsDisplayLimit = 15;
+          this.navigateToSection("questions", questionsBtn.getAttribute("data-unit-id"), true);
+          return;
+        }
+      });
+    }
+
+    // Delegated Events: Theory Cards Container
+    if (this.theoryCardsContainer) {
+      this.theoryCardsContainer.addEventListener("click", (e) => {
+        const toggleMapBtn = e.target.closest(".btn-toggle-mindmap");
+        if (toggleMapBtn) {
+          const topicId = toggleMapBtn.getAttribute("data-topic-id");
+          this.toggleMindMapForTopic(topicId, toggleMapBtn);
+          return;
+        }
+        const editMapBtn = e.target.closest(".btn-edit-mindmap");
+        if (editMapBtn) {
+          e.stopPropagation();
+          const topicId = editMapBtn.getAttribute("data-topic-id");
+          this.openEditMindMapModal(topicId);
+          return;
+        }
+        const editTheoryBtn = e.target.closest(".btn-edit-theory");
+        if (editTheoryBtn) {
+          const topicId = editTheoryBtn.getAttribute("data-topic-id");
+          this.openEditTheoryModal(topicId);
+          return;
+        }
+        const deleteTheoryBtn = e.target.closest(".btn-delete-theory");
+        if (deleteTheoryBtn) {
+          const topicId = deleteTheoryBtn.getAttribute("data-topic-id");
+          this.handleDeleteTheoryTopic(topicId);
+          return;
+        }
+        const loadMoreTheoryBtn = e.target.closest("#btnLoadMoreTheory");
+        if (loadMoreTheoryBtn) {
+          this.theoryDisplayLimit = (this.theoryDisplayLimit || 25) + 25;
+          const state = store.getState();
+          this.renderTheorySection(store.getCurrentPaperData());
+          return;
+        }
+      });
+    }
+
+    // Delegated Events: Tricks Container
+    if (this.tricksContainer) {
+      this.tricksContainer.addEventListener("click", (e) => {
+        const copyBtn = e.target.closest(".copy-trick-btn");
+        if (copyBtn) {
+          const text = copyBtn.getAttribute("data-text");
+          const originalHtml = copyBtn.innerHTML;
+          navigator.clipboard.writeText(text).then(() => {
+            copyBtn.innerHTML = "✓ Copied!";
+            copyBtn.classList.add("copied");
+            showToast("Mnemonic copied to clipboard!", "success");
+            setTimeout(() => {
+              copyBtn.innerHTML = originalHtml;
+              copyBtn.classList.remove("copied");
+            }, 1800);
+          }).catch(() => {
+            showToast("Copied!", "success");
+          });
+          return;
+        }
+        const editTrickBtn = e.target.closest(".btn-edit-trick");
+        if (editTrickBtn) {
+          const trickId = editTrickBtn.getAttribute("data-trick-id");
+          this.openEditTrickModal(trickId);
+          return;
+        }
+        const deleteTrickBtn = e.target.closest(".btn-delete-trick");
+        if (deleteTrickBtn) {
+          const trickId = deleteTrickBtn.getAttribute("data-trick-id");
+          this.handleDeleteTrick(trickId);
+          return;
+        }
+        const loadMoreTricksBtn = e.target.closest("#btnLoadMoreTricks");
+        if (loadMoreTricksBtn) {
+          this.tricksDisplayLimit = (this.tricksDisplayLimit || 20) + 20;
+          this.renderTricksSection(store.getCurrentPaperData());
+          return;
+        }
+      });
+    }
+
+    // Delegated Events: Notepad Grid
+    if (this.userNotesGrid) {
+      this.userNotesGrid.addEventListener("click", (e) => {
+        const editBtn = e.target.closest(".btn-edit-point");
+        if (editBtn) {
+          const id = editBtn.getAttribute("data-id");
+          this.openEditNoteModal(id);
+          return;
+        }
+        const deleteBtn = e.target.closest(".btn-delete-point");
+        if (deleteBtn) {
+          const id = deleteBtn.getAttribute("data-id");
+          this.handleDeleteNote(id);
+          return;
+        }
+      });
+    }
+
+    // Delegated Events: Questions Container
+    if (this.questionsCardsContainer) {
+      this.questionsCardsContainer.addEventListener("click", (e) => {
+        const optRow = e.target.closest(".option-row");
+        if (optRow && !optRow.classList.contains("disabled")) {
+          const qId = optRow.getAttribute("data-qid");
+          const optId = optRow.getAttribute("data-opt");
+          this.handleQuestionOptionSelect(qId, optId, optRow);
+          return;
+        }
+        const nextBtn = e.target.closest(".btn-next-question");
+        if (nextBtn) {
+          const qId = nextBtn.getAttribute("data-qid");
+          questionsManager.sendToBottom(qId);
+          this.renderQuestionsSection();
+          showToast("Question moved to bottom! Ready for next.", "info");
+          return;
+        }
+        const resetBtn = e.target.closest(".btn-reset-question");
+        if (resetBtn) {
+          const qId = resetBtn.getAttribute("data-qid");
+          questionsManager.resetQuestion(qId);
+          this.renderQuestionsSection();
+          showToast("Question reset! Moved back to top of queue.", "info");
+          return;
+        }
+        const loadMoreQBtn = e.target.closest("#btnLoadMoreQuestions");
+        if (loadMoreQBtn) {
+          this.questionsDisplayLimit = (this.questionsDisplayLimit || 15) + 15;
+          this.renderQuestionsSection();
+          return;
+        }
+      });
+    }
 
     // Create Note Form (Notepad)
     const createNoteForm = document.getElementById("createNoteForm");
@@ -982,6 +1162,182 @@ class AppController {
     }
   }
 
+  handleQuestionOptionSelect(qId, optId, clickedRow) {
+    const radio = clickedRow.querySelector("input[type='radio']");
+    if (radio) radio.checked = true;
+
+    // Submit answer silently without invoking heavy full list re-render
+    const res = questionsManager.submitAnswer(qId, optId, false);
+    if (!res) return;
+
+    const card = document.getElementById(`q_card_${qId}`);
+    if (card) {
+      card.style.borderLeftColor = res.isCorrect ? '#10b981' : '#ef4444';
+
+      const header = card.querySelector(".question-card-header");
+      if (header && !header.querySelector(".btn-reset-question")) {
+        const retryBtn = document.createElement("button");
+        retryBtn.className = "btn-reset-question";
+        retryBtn.setAttribute("data-qid", qId);
+        retryBtn.title = "Re-attempt this question";
+        retryBtn.textContent = "↺ Re-try";
+        header.appendChild(retryBtn);
+      }
+
+      const rows = card.querySelectorAll(".option-row");
+      rows.forEach(r => {
+        r.classList.add("disabled");
+        const rOpt = r.getAttribute("data-opt");
+        const rInput = r.querySelector("input[type='radio']");
+        if (rInput) rInput.disabled = true;
+
+        const existingBadge = r.querySelector(".option-result-icon");
+        if (existingBadge) existingBadge.remove();
+
+        if (rOpt === optId) {
+          if (res.isCorrect) {
+            r.classList.add("correct-choice");
+            r.insertAdjacentHTML("beforeend", `<span class="option-result-icon">✓ Correct!</span>`);
+          } else {
+            r.classList.add("wrong-choice");
+            r.insertAdjacentHTML("beforeend", `<span class="option-result-icon">✗ Your Choice</span>`);
+          }
+        } else if (rOpt === res.correctOption && !res.isCorrect) {
+          r.classList.add("reveal-correct");
+          r.insertAdjacentHTML("beforeend", `<span class="option-result-icon">✓ Correct Answer</span>`);
+        }
+      });
+
+      if (!card.querySelector(".option-breakdown-card")) {
+        let breakdownHtml = `
+          <div class="option-breakdown-card">
+            <div class="breakdown-header">
+              <span class="breakdown-title">
+                <span>💡</span>
+                <span>${res.isCorrect ? "Correct! Detailed Option Breakdown:" : "Incorrect! Simple Explanation of Each Option:"}</span>
+              </span>
+            </div>
+            <div class="breakdown-list">
+        `;
+        Object.keys(res.optionExplanations || {}).forEach(k => {
+          const isRight = k === res.correctOption;
+          breakdownHtml += `
+            <div class="breakdown-item ${isRight ? 'is-correct-exp' : ''}">
+              <span class="breakdown-badge">Option ${k}</span>
+              <span class="breakdown-text">${escapeHtml(res.optionExplanations[k])}</span>
+            </div>
+          `;
+        });
+        breakdownHtml += `</div>`;
+        if (res.summaryExplanation) {
+          breakdownHtml += `
+            <div class="breakdown-summary">
+              <strong>📌 Key Takeaway:</strong> ${escapeHtml(res.summaryExplanation)}
+            </div>
+          `;
+        }
+        breakdownHtml += `
+          <div class="next-question-action-bar">
+            <button class="btn-next-question" data-qid="${qId}" type="button">
+              Next Question ➡️
+            </button>
+          </div>
+        </div>`;
+        card.insertAdjacentHTML("beforeend", breakdownHtml);
+      }
+    }
+
+    // Update stats bar in place
+    const state = store.getState();
+    const stats = questionsManager.getStats(state.activePaper, state.selectedUnitId);
+    if (this.pyqAttemptedPill) this.pyqAttemptedPill.textContent = `📝 Attempted: ${stats.attempted}/${stats.total}`;
+    if (this.pyqScorePill) this.pyqScorePill.textContent = `✓ Score: ${stats.correct}`;
+    if (this.pyqAccuracyPill) this.pyqAccuracyPill.textContent = `🎯 Accuracy: ${stats.accuracy}%`;
+
+    if (res.isCorrect) {
+      showToast("✓ Correct! Review explanation, then tap 'Next Question ➡️'", "success");
+    } else {
+      showToast(`✗ Incorrect. Option ${res.correctOption} is correct. Review explanation, then tap 'Next Question ➡️'`, "info");
+    }
+  }
+
+  toggleMindMapForTopic(topicId, btn) {
+    const mapContainer = document.getElementById(`mindmap-${topicId}`);
+    if (!mapContainer) return;
+    const isHidden = mapContainer.style.display === "none";
+    if (isHidden) {
+      if (!mapContainer.hasChildNodes() || mapContainer.innerHTML.trim() === "") {
+        const state = store.getState();
+        const match = dataManager.getTheoryTopic(state.activePaper, topicId);
+        if (match && match.topic) {
+          mapContainer.innerHTML = this.renderMindMapHtml(match.topic);
+        }
+      }
+      mapContainer.style.display = "flex";
+      btn.innerHTML = "✕ Close Map";
+    } else {
+      mapContainer.style.display = "none";
+      btn.innerHTML = "🗺️ Mind Map";
+    }
+  }
+
+  handleDeleteTheoryTopic(topicId) {
+    const state = store.getState();
+    if (confirm("Move this theory topic to Recycle Bin?")) {
+      const deleted = dataManager.deleteTheoryTopic(state.activePaper, topicId);
+      if (deleted) {
+        binManager.addItem({
+          type: "theory",
+          typeName: "Theory Topic",
+          paper: state.activePaper,
+          unitId: deleted.unit.id,
+          unitName: deleted.unit.name || deleted.unit.title,
+          title: deleted.topic.title,
+          data: deleted.topic
+        });
+        showToast(`Moved "${deleted.topic.title}" to Recycle Bin.`, "info");
+      }
+    }
+  }
+
+  handleDeleteTrick(trickId) {
+    const state = store.getState();
+    if (confirm("Move this trick to Recycle Bin?")) {
+      const deleted = dataManager.deleteTrick(state.activePaper, trickId);
+      if (deleted) {
+        binManager.addItem({
+          type: "trick",
+          typeName: "Short Trick",
+          paper: state.activePaper,
+          unitId: deleted.unit.id,
+          unitName: deleted.unit.name || deleted.unit.title,
+          title: deleted.trick.title,
+          data: deleted.trick
+        });
+        showToast(`Moved "${deleted.trick.title}" to Recycle Bin.`, "info");
+      }
+    }
+  }
+
+  handleDeleteNote(id) {
+    const state = store.getState();
+    if (confirm("Move this study point to Recycle Bin?")) {
+      const deleted = notesManager.deleteNote(id);
+      if (deleted) {
+        binManager.addItem({
+          type: "note",
+          typeName: "Notepad Point",
+          paper: deleted.paper || state.activePaper,
+          unitId: deleted.unitId,
+          unitName: deleted.unitName,
+          title: deleted.title,
+          data: deleted
+        });
+        showToast(`Moved "${deleted.title}" to Recycle Bin.`, "info");
+      }
+    }
+  }
+
   // --- MODAL CONTROLLERS ---
 
   closeAllModals(triggerHistoryBack = true) {
@@ -1033,14 +1389,14 @@ class AppController {
 
   openAddTheoryModal() {
     const state = store.getState();
-    const paperData = store.getCurrentPaperData();
     const defaultUnitId = state.selectedUnitId !== "all" ? state.selectedUnitId : "general";
 
     this.populateModalUnitOptions(this.theoryModalUnitSelect, defaultUnitId);
     this.theoryModalTitle.textContent = "➕ Add Theory Topic";
     this.theoryModalTopicId.value = "";
     this.theoryModalTopicTitle.value = "";
-    if (this.theoryModalEditor) this.theoryModalEditor.clear();
+    const editor = this.getTheoryModalEditor();
+    if (editor) editor.clear();
     this.theoryModalUnitSelect.disabled = false;
 
     this.pushModalState("addTheory");
@@ -1060,16 +1416,17 @@ class AppController {
     this.theoryModalTopicId.value = topic.id;
     this.theoryModalTopicTitle.value = topic.title;
 
-    if (this.theoryModalEditor) {
+    const editor = this.getTheoryModalEditor();
+    if (editor) {
       if (topic.content) {
-        this.theoryModalEditor.setHtml(topic.content);
+        editor.setHtml(topic.content);
       } else if (topic.points && topic.points.length > 0) {
         const cleanLines = topic.points
           .map(p => `<div>${escapeHtml(p.replace(/^[•\-\*\s]+/, "").trim())}</div>`)
           .join("");
-        this.theoryModalEditor.setHtml(cleanLines);
+        editor.setHtml(cleanLines);
       } else {
-        this.theoryModalEditor.clear();
+        editor.clear();
       }
     }
     // Allow changing the unit while editing!
@@ -1086,7 +1443,8 @@ class AppController {
     const topicId = this.theoryModalTopicId.value;
     const unitId = this.theoryModalUnitSelect.value;
     const title = this.theoryModalTopicTitle.value.trim();
-    const content = this.theoryModalEditor ? this.theoryModalEditor.getHtml() : "";
+    const editor = this.getTheoryModalEditor();
+    const content = editor ? editor.getHtml() : "";
 
     if (!title || !content) {
       showToast("Please enter title and theory content!", "info");
@@ -1145,7 +1503,8 @@ class AppController {
     this.trickModalTitleInput.value = "";
     if (this.trickModalLightbulb) this.trickModalLightbulb.value = "";
     this.trickModalMnemonic.value = "";
-    if (this.trickModalExplanationEditor) this.trickModalExplanationEditor.clear();
+    const trickEditor = this.getTrickModalExplanationEditor();
+    if (trickEditor) trickEditor.clear();
     this.trickModalProTip.value = "";
     this.trickModalUnitSelect.disabled = false;
 
@@ -1169,8 +1528,9 @@ class AppController {
       this.trickModalLightbulb.value = trick.lightbulb || "";
     }
     this.trickModalMnemonic.value = trick.mnemonic;
-    if (this.trickModalExplanationEditor) {
-      this.trickModalExplanationEditor.setHtml(trick.explanation || "");
+    const trickEditor = this.getTrickModalExplanationEditor();
+    if (trickEditor) {
+      trickEditor.setHtml(trick.explanation || "");
     }
     this.trickModalProTip.value = trick.proTip || "";
     // Allow changing unit while editing!
@@ -1189,7 +1549,8 @@ class AppController {
     const title = this.trickModalTitleInput.value.trim();
     const lightbulb = this.trickModalLightbulb ? this.trickModalLightbulb.value.trim() : "";
     const mnemonic = this.trickModalMnemonic.value.trim();
-    const explanation = this.trickModalExplanationEditor ? this.trickModalExplanationEditor.getHtml() : "";
+    const trickEditor = this.getTrickModalExplanationEditor();
+    const explanation = trickEditor ? trickEditor.getHtml() : "";
     const proTip = this.trickModalProTip.value.trim();
 
     if (!title || !mnemonic || !explanation) {
@@ -1252,8 +1613,9 @@ class AppController {
     this.noteModalTitle.textContent = "✏️ Edit Study Point";
     this.noteModalNoteId.value = note.id;
     this.noteModalTitleInput.value = note.title || "";
-    if (this.noteModalEditor) {
-      this.noteModalEditor.setHtml(note.content || "");
+    const noteEditor = this.getNoteModalEditor();
+    if (noteEditor) {
+      noteEditor.setHtml(note.content || "");
     }
 
     if (this.noteModalColorDots) {
@@ -1284,7 +1646,8 @@ class AppController {
     const noteId = this.noteModalNoteId.value;
     const unitSelect = this.noteModalUnitSelect;
     const title = this.noteModalTitleInput.value.trim() || "My Study Point";
-    const content = this.noteModalEditor ? this.noteModalEditor.getHtml() : "";
+    const noteEditor = this.getNoteModalEditor();
+    const content = noteEditor ? noteEditor.getHtml() : "";
     const activeColorDot = this.noteModalColorDots?.querySelector(".color-dot.active");
     const color = activeColorDot ? activeColorDot.getAttribute("data-color") : "#8b5cf6";
 
@@ -1748,28 +2111,6 @@ class AppController {
     });
 
     this.unitsListContainer.innerHTML = html;
-
-    // Attach click events
-    this.unitsListContainer.querySelectorAll(".btn-go-theory").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const unitId = btn.getAttribute("data-unit-id");
-        this.navigateToSection("theory", unitId, true);
-      });
-    });
-
-    this.unitsListContainer.querySelectorAll(".btn-go-tricks").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const unitId = btn.getAttribute("data-unit-id");
-        this.navigateToSection("tricks", unitId, true);
-      });
-    });
-
-    this.unitsListContainer.querySelectorAll(".btn-go-questions").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const unitId = btn.getAttribute("data-unit-id");
-        this.navigateToSection("questions", unitId, true);
-      });
-    });
   }
 
   renderTheorySection(paperData) {
@@ -1815,8 +2156,14 @@ class AppController {
       return;
     }
 
+    // Progressive rendering slice: 25 initial topics for instantaneous render
+    const displayLimit = (state.selectedUnitId === "all" && !state.searchQuery)
+      ? (this.theoryDisplayLimit || 25)
+      : allTheory.length;
+    const visibleTheory = allTheory.slice(0, displayLimit);
+
     let html = "";
-    allTheory.forEach(item => {
+    visibleTheory.forEach(item => {
       let contentHtml = "";
       if (item.content) {
         contentHtml = `<div class="theory-content-body">${item.content}</div>`;
@@ -1856,75 +2203,17 @@ class AppController {
       `;
     });
 
+    if (allTheory.length > visibleTheory.length) {
+      html += `
+        <div class="load-more-container" style="display: flex; justify-content: center; margin: 1.5rem 0;">
+          <button id="btnLoadMoreTheory" class="btn-load-more" type="button" style="background: var(--bg-card); border: 1.5px solid var(--accent-current); color: var(--accent-current); font-weight: 800; font-size: 0.88rem; padding: 0.75rem 1.6rem; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+            📖 Load More Topics (Showing ${visibleTheory.length} of ${allTheory.length})
+          </button>
+        </div>
+      `;
+    }
+
     this.theoryCardsContainer.innerHTML = html;
-
-    // Attach Toggle Mind Map events (Lazy rendered on demand for 10x faster theory display)
-    this.theoryCardsContainer.querySelectorAll(".btn-toggle-mindmap").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const topicId = btn.getAttribute("data-topic-id");
-        const mapContainer = document.getElementById(`mindmap-${topicId}`);
-        if (!mapContainer) return;
-        const isHidden = mapContainer.style.display === "none";
-        if (isHidden) {
-          if (!mapContainer.hasChildNodes() || mapContainer.innerHTML.trim() === "") {
-            const item = allTheory.find(t => t.id === topicId) || dataManager.getTheoryTopic(state.activePaper, topicId);
-            if (item) {
-              mapContainer.innerHTML = this.renderMindMapHtml(item);
-              const editBtn = mapContainer.querySelector(".btn-edit-mindmap");
-              if (editBtn) {
-                editBtn.addEventListener("click", (e) => {
-                  e.stopPropagation();
-                  this.openEditMindMapModal(topicId);
-                });
-              }
-            }
-          }
-          mapContainer.style.display = "flex";
-          btn.innerHTML = "✕ Close Map";
-        } else {
-          mapContainer.style.display = "none";
-          btn.innerHTML = "🗺️ Mind Map";
-        }
-      });
-    });
-
-    // Attach Edit Mind Map events
-    this.theoryCardsContainer.querySelectorAll(".btn-edit-mindmap").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const topicId = btn.getAttribute("data-topic-id");
-        this.openEditMindMapModal(topicId);
-      });
-    });
-
-    // Attach Edit and Delete events
-    this.theoryCardsContainer.querySelectorAll(".btn-edit-theory").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const topicId = btn.getAttribute("data-topic-id");
-        this.openEditTheoryModal(topicId);
-      });
-    });
-
-    this.theoryCardsContainer.querySelectorAll(".btn-delete-theory").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const topicId = btn.getAttribute("data-topic-id");
-        if (confirm("Move this theory topic to Recycle Bin?")) {
-          const deleted = dataManager.deleteTheoryTopic(state.activePaper, topicId);
-          if (deleted) {
-            binManager.addItem({
-              type: "theory",
-              typeName: "Theory Topic",
-              paper: state.activePaper,
-              unitId: deleted.unit.id,
-              unitName: deleted.unit.name || deleted.unit.title,
-              title: deleted.topic.title,
-              data: deleted.topic
-            });
-            showToast(`Moved "${deleted.topic.title}" to Recycle Bin.`, "info");
-          }
-        }
-      });
-    });
   }
 
   renderMindMapHtml(item) {
@@ -2122,9 +2411,15 @@ class AppController {
       return;
     }
 
+    // Progressive rendering slice: 20 initial tricks for instantaneous render
+    const displayLimit = (state.selectedUnitId === "all" && !state.searchQuery)
+      ? (this.tricksDisplayLimit || 20)
+      : allTricks.length;
+    const visibleTricks = allTricks.slice(0, displayLimit);
+
     const trickThemes = ["cyan", "violet", "emerald", "amber", "rose", "indigo", "teal", "fuchsia"];
     let html = "";
-    allTricks.forEach((tr, trIdx) => {
+    visibleTricks.forEach((tr, trIdx) => {
       const colorTheme = trickThemes[trIdx % trickThemes.length];
       const directBulbText = tr.lightbulb ? tr.lightbulb : `${tr.title} Key Trick`;
 
@@ -2178,54 +2473,17 @@ class AppController {
       `;
     });
 
+    if (allTricks.length > visibleTricks.length) {
+      html += `
+        <div class="load-more-container" style="display: flex; justify-content: center; margin: 1.5rem 0;">
+          <button id="btnLoadMoreTricks" class="btn-load-more" type="button" style="background: var(--bg-card); border: 1.5px solid var(--accent-trick); color: var(--accent-trick); font-weight: 800; font-size: 0.88rem; padding: 0.75rem 1.6rem; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+            💡 Load More Tricks (Showing ${visibleTricks.length} of ${allTricks.length})
+          </button>
+        </div>
+      `;
+    }
+
     this.tricksContainer.innerHTML = html;
-
-    // Attach Copy, Edit, and Delete listeners
-    this.tricksContainer.querySelectorAll(".copy-trick-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const text = btn.getAttribute("data-text");
-        const originalHtml = btn.innerHTML;
-        navigator.clipboard.writeText(text).then(() => {
-          btn.innerHTML = "✓ Copied!";
-          btn.classList.add("copied");
-          showToast("Mnemonic copied to clipboard!", "success");
-          setTimeout(() => {
-            btn.innerHTML = originalHtml;
-            btn.classList.remove("copied");
-          }, 1800);
-        }).catch(() => {
-          showToast("Copied!", "success");
-        });
-      });
-    });
-
-    this.tricksContainer.querySelectorAll(".btn-edit-trick").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const trickId = btn.getAttribute("data-trick-id");
-        this.openEditTrickModal(trickId);
-      });
-    });
-
-    this.tricksContainer.querySelectorAll(".btn-delete-trick").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const trickId = btn.getAttribute("data-trick-id");
-        if (confirm("Move this trick to Recycle Bin?")) {
-          const deleted = dataManager.deleteTrick(state.activePaper, trickId);
-          if (deleted) {
-            binManager.addItem({
-              type: "trick",
-              typeName: "Short Trick",
-              paper: state.activePaper,
-              unitId: deleted.unit.id,
-              unitName: deleted.unit.name || deleted.unit.title,
-              title: deleted.trick.title,
-              data: deleted.trick
-            });
-            showToast(`Moved "${deleted.trick.title}" to Recycle Bin.`, "info");
-          }
-        }
-      });
-    });
   }
 
   renderNotepadSection() {
@@ -2281,36 +2539,6 @@ class AppController {
     });
 
     this.userNotesGrid.innerHTML = html;
-
-    // Edit buttons
-    this.userNotesGrid.querySelectorAll(".btn-edit-point").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-id");
-        this.openEditNoteModal(id);
-      });
-    });
-
-    // Delete buttons
-    this.userNotesGrid.querySelectorAll(".btn-delete-point").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-id");
-        if (confirm("Move this study point to Recycle Bin?")) {
-          const deleted = notesManager.deleteNote(id);
-          if (deleted) {
-            binManager.addItem({
-              type: "note",
-              typeName: "Notepad Point",
-              paper: deleted.paper || state.activePaper,
-              unitId: deleted.unitId,
-              unitName: deleted.unitName,
-              title: deleted.title,
-              data: deleted
-            });
-            showToast(`Moved "${deleted.title}" to Recycle Bin.`, "info");
-          }
-        }
-      });
-    });
   }
 
   updateNotesBadge() {
@@ -2626,63 +2854,17 @@ class AppController {
     }
 
     this.questionsCardsContainer.innerHTML = html;
-
-    // Attach Option Click listeners (for instant evaluation & explanation)
-    this.questionsCardsContainer.querySelectorAll(".option-row:not(.disabled)").forEach(row => {
-      row.addEventListener("click", (e) => {
-        const qId = row.getAttribute("data-qid");
-        const optId = row.getAttribute("data-opt");
-        const radio = row.querySelector("input[type='radio']");
-        if (radio) radio.checked = true;
-
-        const res = questionsManager.submitAnswer(qId, optId);
-        if (res) {
-          if (res.isCorrect) {
-            showToast("✓ Correct! Review explanation, then tap 'Next Question ➡️'", "success");
-          } else {
-            showToast(`✗ Incorrect. Option ${res.correctOption} is correct. Review explanation, then tap 'Next Question ➡️'`, "info");
-          }
-        }
-      });
-    });
-
-    // Attach Next Question listeners (moves solved question to bottom)
-    this.questionsCardsContainer.querySelectorAll(".btn-next-question").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const qId = btn.getAttribute("data-qid");
-        questionsManager.sendToBottom(qId);
-        showToast("Question moved to bottom! Ready for next.", "info");
-      });
-    });
-
-    // Attach Re-attempt listeners
-    this.questionsCardsContainer.querySelectorAll(".btn-reset-question").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const qId = btn.getAttribute("data-qid");
-        questionsManager.resetQuestion(qId);
-        showToast("Question reset! Moved back to top of queue.", "info");
-      });
-    });
-
-    // Attach Load More listener
-    const btnLoadMore = this.questionsCardsContainer.querySelector("#btnLoadMoreQuestions");
-    if (btnLoadMore) {
-      btnLoadMore.addEventListener("click", () => {
-        this.questionsDisplayLimit = (this.questionsDisplayLimit || 15) + 15;
-        this.renderQuestionsSection();
-      });
-    }
   }
 
   updateQuestionsBadge() {
     const state = store.getState();
-    const totalInPaper = questionsManager.getQuestions(state.activePaper, "all").length;
-    const currentFilterCount = questionsManager.getQuestions(state.activePaper, state.selectedUnitId, state.searchQuery).length;
+    const totalInPaper = questionsManager.questions[state.activePaper]?.length || 0;
 
     if (this.tabQuestionsCountBadge) {
       this.tabQuestionsCountBadge.textContent = `(${totalInPaper})`;
     }
-    if (this.questionsCountBadge) {
+    if (this.questionsCountBadge && state.activeSection === "questions") {
+      const currentFilterCount = questionsManager.getQuestions(state.activePaper, state.selectedUnitId, state.searchQuery).length;
       this.questionsCountBadge.textContent = `(${currentFilterCount} Questions)`;
     }
   }

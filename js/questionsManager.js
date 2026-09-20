@@ -45,10 +45,12 @@ export class QuestionsManager {
     return {};
   }
 
-  saveAnswers() {
+  saveAnswers(triggerNotify = true) {
     try {
       localStorage.setItem(ANSWERS_STORAGE_KEY, JSON.stringify(this.userAnswers));
-      this.notifyListeners();
+      if (triggerNotify) {
+        this.notifyListeners();
+      }
     } catch (e) {
       console.error("Failed to save user answers:", e);
     }
@@ -126,9 +128,14 @@ export class QuestionsManager {
   }
 
   getUnitQuestionCount(paperId, unitId) {
+    if (!this._unitCounts) this._unitCounts = {};
+    const key = `${paperId}_${unitId || 'all'}`;
+    if (this._unitCounts[key] !== undefined) return this._unitCounts[key];
+
     const list = this.questions[paperId] || [];
-    if (!unitId || unitId === "all") return list.length;
-    return list.filter(q => q.unitId === unitId).length;
+    const count = (!unitId || unitId === "all") ? list.length : list.filter(q => q.unitId === unitId).length;
+    this._unitCounts[key] = count;
+    return count;
   }
 
   getQuestionById(questionId) {
@@ -140,7 +147,7 @@ export class QuestionsManager {
     return this.userAnswers[questionId] || null;
   }
 
-  submitAnswer(questionId, selectedOption) {
+  submitAnswer(questionId, selectedOption, triggerNotify = true) {
     const question = this.getQuestionById(questionId);
     if (!question) return null;
 
@@ -151,7 +158,7 @@ export class QuestionsManager {
       answeredAt: new Date().toISOString()
     };
 
-    this.saveAnswers();
+    this.saveAnswers(triggerNotify);
     return {
       isCorrect,
       correctOption: question.correctOption,
@@ -197,7 +204,10 @@ export class QuestionsManager {
   }
 
   getStats(paperId, unitId = "all") {
-    const list = this.getQuestions(paperId, unitId);
+    const paperQuestions = this.questions[paperId] || [];
+    const list = (unitId && unitId !== "all")
+      ? paperQuestions.filter(q => q.unitId === unitId)
+      : paperQuestions;
     const total = list.length;
     let attempted = 0;
     let correct = 0;

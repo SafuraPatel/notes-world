@@ -12,9 +12,11 @@ export class NotesManager {
     this.notes = this.loadNotes();
     this.listeners = [];
 
-    // Automatically sync latest shared notes from Netlify Cloud DB
-    this.syncFromCloud();
-    this.setupBackgroundSync();
+    // Deferred non-blocking sync: Allows instant UI render from localStorage
+    setTimeout(() => {
+      this.syncFromCloud();
+      this.setupBackgroundSync();
+    }, 3000);
   }
 
   loadNotes() {
@@ -64,20 +66,12 @@ export class NotesManager {
   }
 
   setupBackgroundSync() {
-    // Re-sync whenever user focuses or returns to the tab
-    window.addEventListener("focus", () => this.syncFromCloud());
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") {
-        this.syncFromCloud();
-      }
-    });
-
-    // Background polling every 60 seconds (lightweight)
+    // Non-intrusive background polling every 5 minutes
     setInterval(() => {
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState === "visible" && navigator.onLine) {
         this.syncFromCloud();
       }
-    }, 60000);
+    }, 300000);
   }
 
   async syncFromCloud() {
