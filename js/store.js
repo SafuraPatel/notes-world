@@ -8,9 +8,12 @@ import { dataManager } from "./dataManager.js";
 
 class AppStore {
   constructor() {
+    let initialSection = localStorage.getItem("notes_world_active_section") || "units";
+    if (initialSection === "theory") initialSection = "units";
+
     this.state = {
       activePaper: localStorage.getItem("notes_world_active_paper") || "paper1", // 'paper1' or 'paper2'
-      activeSection: localStorage.getItem("notes_world_active_section") || "units", // 'units', 'theory', 'tricks', 'questions', 'notepad'
+      activeSection: initialSection, // 'units', 'syllabus', 'tricks', 'questions', 'notepad', 'bin'
       selectedUnitId: "all", // 'all' or specific unitId
       searchQuery: "",
       theme: localStorage.getItem("notes_world_theme") || "dark"

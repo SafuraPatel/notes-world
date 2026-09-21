@@ -80,6 +80,20 @@ exports.handler = async (event, context) => {
         };
       }
 
+      if (type === "syllabus") {
+        let syllabusData = null;
+        if (blobStore) {
+          syllabusData = await blobStore.get("syllabus_progress", { type: "json" });
+        } else {
+          syllabusData = memoryStore.has("syllabus_progress") ? memoryStore.get("syllabus_progress") : null;
+        }
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ success: true, syllabus: syllabusData })
+        };
+      }
+
       if (paper === "paper1" || paper === "paper2") {
         let paperData = null;
         if (blobStore) {
@@ -97,7 +111,7 @@ exports.handler = async (event, context) => {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ success: false, message: "Specify ?paper=paper1, ?type=notes, or ?type=bin" })
+        body: JSON.stringify({ success: false, message: "Specify ?paper=paper1, ?type=notes, ?type=bin, or ?type=syllabus" })
       };
     } catch (err) {
       console.error("GET Error:", err);
@@ -137,6 +151,19 @@ exports.handler = async (event, context) => {
           statusCode: 200,
           headers,
           body: JSON.stringify({ success: true, message: "Recycle bin saved to Cloud DB" })
+        };
+      }
+
+      if (body.type === "syllabus") {
+        if (blobStore) {
+          await blobStore.setJSON("syllabus_progress", body.syllabus);
+        } else {
+          memoryStore.set("syllabus_progress", body.syllabus);
+        }
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ success: true, message: "Syllabus progress saved to Cloud DB" })
         };
       }
 

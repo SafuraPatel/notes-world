@@ -3866,4 +3866,495 @@ u {
   to { transform: scale(1); opacity: 1; }
 }
 
+/* ==========================================================================
+   SYLLABUS & CHECKLIST SYSTEM
+   ========================================================================== */
+
+.syllabus-header-wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.syllabus-badge {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.15));
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #10b981;
+  font-weight: 800;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+}
+
+.syllabus-progress-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.syllabus-progress-bar-bg {
+  width: 100%;
+  height: 10px;
+  background: var(--bg-hover);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  position: relative;
+}
+
+.syllabus-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #06b6d4, #3b82f6);
+  border-radius: var(--radius-full);
+  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.syllabus-progress-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.55rem;
+  font-size: 0.85rem;
+  color: var(--text-sub);
+  font-weight: 600;
+}
+
+.syllabus-percent-pill {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  font-weight: 800;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+}
+
+/* Accordion Unit Cards */
+.syllabus-units-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1.5rem;
+}
+
+.syllabus-unit-accordion-card {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.syllabus-unit-accordion-card:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.syllabus-unit-accordion-card.is-all-covered {
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.syllabus-unit-accordion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1.1rem;
+  cursor: pointer;
+  user-select: none;
+  background: var(--bg-card);
+  transition: background 0.15s ease;
+}
+
+.syllabus-unit-accordion-header:hover {
+  background: var(--bg-hover);
+}
+
+.unit-acc-left {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex: 1;
+}
+
+.unit-acc-icon {
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--bg-hover);
+  flex-shrink: 0;
+}
+
+.unit-acc-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.unit-acc-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.unit-acc-num {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-sub);
+}
+
+.unit-progress-pill {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-full);
+  background: var(--bg-hover);
+  color: var(--text-sub);
+  border: 1px solid var(--border);
+}
+
+.unit-progress-pill.completed {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.unit-acc-name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.25;
+}
+
+.unit-acc-right {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-shrink: 0;
+}
+
+.unit-acc-mini-progress {
+  width: 70px;
+  height: 6px;
+  background: var(--bg-hover);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.unit-progress-bar-fill {
+  height: 100%;
+  background: #10b981;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.acc-chevron {
+  font-size: 0.8rem;
+  color: var(--text-sub);
+  transition: transform 0.25s ease;
+}
+
+.syllabus-unit-accordion-card.is-open .acc-chevron {
+  transform: rotate(180deg);
+}
+
+.syllabus-unit-accordion-body {
+  display: none;
+  border-top: 1px solid var(--border);
+  background: var(--bg-card);
+  padding: 0.5rem 0.85rem;
+}
+
+.syllabus-unit-accordion-card.is-open .syllabus-unit-accordion-body {
+  display: block;
+  animation: fadeInDown 0.2s ease-out;
+}
+
+/* Topics list inside accordion */
+.syllabus-topics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.syllabus-item-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  user-select: none;
+}
+
+.syllabus-item-row:hover {
+  background: var(--bg-hover);
+}
+
+.syllabus-item-row.is-covered {
+  opacity: 0.65;
+}
+
+.syllabus-item-row.is-covered .syllabus-item-title {
+  text-decoration: line-through;
+  color: var(--text-sub);
+}
+
+.syllabus-topic-checkbox {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.syllabus-custom-checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg-card);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+}
+
+.syllabus-item-row:hover .syllabus-custom-checkbox {
+  border-color: #10b981;
+}
+
+.syllabus-topic-checkbox:checked + .syllabus-custom-checkbox {
+  background: #10b981;
+  border-color: #10b981;
+}
+
+.syllabus-topic-checkbox:checked + .syllabus-custom-checkbox::after {
+  content: "✓";
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.syllabus-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+}
+
+.syllabus-item-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.35;
+}
+
+.syllabus-item-concepts {
+  font-size: 0.78rem;
+  color: var(--text-sub);
+  line-height: 1.35;
+}
+
+/* Must Cover Section */
+.syllabus-must-cover-wrapper {
+  margin-top: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.must-cover-card {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(239, 68, 68, 0.05));
+  border: 2px solid rgba(245, 158, 11, 0.35);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.08);
+}
+
+.must-cover-card-header {
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1.5px solid rgba(245, 158, 11, 0.25);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.must-cover-header-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.must-cover-fire-icon {
+  font-size: 2rem;
+  line-height: 1;
+  animation: pulse 1.5s infinite alternate;
+}
+
+.must-cover-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.3rem;
+}
+
+.must-cover-badge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  background: #f59e0b;
+  color: #000000;
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-full);
+}
+
+.must-cover-out-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.must-cover-stat-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-full);
+}
+
+.must-cover-heading {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.must-cover-subheading {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-sub);
+  line-height: 1.35;
+}
+
+.must-cover-list {
+  padding: 0.6rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.must-cover-item {
+  background: var(--bg-card);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 8px;
+  padding: 0.75rem 0.95rem;
+}
+
+.must-cover-item:hover {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: var(--bg-hover);
+}
+
+.mc-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.mc-pill-why {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #d97706;
+  background: rgba(245, 158, 11, 0.12);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full);
+}
+
+/* ==========================================================================
+   DUPLICATE TOPIC PROMPT & INLINE ALERT
+   ========================================================================== */
+
+.duplicate-inline-notice {
+  margin-top: 0.55rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1.5px solid rgba(245, 158, 11, 0.4);
+  animation: fadeIn 0.2s ease;
+}
+
+.duplicate-notice-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.duplicate-notice-inner .notice-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.duplicate-notice-inner .notice-body {
+  font-size: 0.82rem;
+  color: var(--text-main);
+  line-height: 1.35;
+  flex: 1;
+}
+
+.duplicate-notice-inner .notice-body p {
+  margin: 0.25rem 0 0.5rem 0;
+  color: var(--text-sub);
+}
+
+.btn-notice-update {
+  background: #f59e0b;
+  color: #000000;
+  border: none;
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.btn-notice-update:hover {
+  background: #d97706;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.duplicate-modal-actions {
+  display: flex;
+  gap: 0.65rem;
+  justify-content: flex-end;
+  margin-top: 1.1rem;
+}
+
+.btn-update-topic-primary {
+  background: #f59e0b !important;
+  color: #000000 !important;
+  font-weight: 800 !important;
+}
+
+.btn-update-topic-primary:hover {
+  background: #d97706 !important;
+  color: #ffffff !important;
+}
+
 

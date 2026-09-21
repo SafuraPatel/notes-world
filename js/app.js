@@ -10,6 +10,8 @@ import { dataManager } from "./dataManager.js";
 import { questionsManager } from "./questionsManager.js";
 import { binManager } from "./binManager.js";
 import { RichEditor } from "./richEditor.js";
+import { syllabusManager } from "./syllabusManager.js";
+import { paper1Syllabus, paper2Syllabus } from "./data/syllabusData.js";
 
 // Toast Notification
 export function showToast(message, type = "info") {
@@ -81,6 +83,13 @@ class AppController {
       this.renderQuestionsSection();
       this.updateQuestionsBadge();
     });
+    // Reactive syllabus updates
+    syllabusManager.subscribe(() => {
+      this.updateSyllabusBadge();
+      if (store.getState().activeSection === "syllabus") {
+        this.renderSyllabusSection();
+      }
+    });
   }
 
   initElements() {
@@ -113,10 +122,23 @@ class AppController {
 
     // Main sections
     this.unitsSection = document.getElementById("unitsSection");
+    this.syllabusSection = document.getElementById("syllabusSection");
     this.theorySection = document.getElementById("theorySection");
     this.tricksSection = document.getElementById("tricksSection");
     this.questionsSection = document.getElementById("questionsSection");
     this.notepadSection = document.getElementById("notepadSection");
+
+    // Syllabus Elements
+    this.tabSyllabusBadge = document.getElementById("tabSyllabusBadge");
+    this.syllabusSectionTitle = document.getElementById("syllabusSectionTitle");
+    this.syllabusProgressBadge = document.getElementById("syllabusProgressBadge");
+    this.syllabusProgressBarFill = document.getElementById("syllabusProgressBarFill");
+    this.syllabusProgressText = document.getElementById("syllabusProgressText");
+    this.syllabusPercentText = document.getElementById("syllabusPercentText");
+    this.syllabusUnitsContainer = document.getElementById("syllabusUnitsContainer");
+    this.syllabusMustCoverContainer = document.getElementById("syllabusMustCoverContainer");
+    this.btnResetSyllabus = document.getElementById("btnResetSyllabus");
+    this._openSyllabusUnits = new Set(["p1-u1", "p2-u1"]);
 
     // Dynamic containers
     this.unitsSectionTitle = document.getElementById("unitsSectionTitle");
@@ -163,12 +185,13 @@ class AppController {
     this.trickModal = document.getElementById("trickModal");
     this.mindMapModal = document.getElementById("mindMapModal");
 
-    // Duplicate Topic Prompt Modal
+    // Duplicate Topic Prompt Modal & Inline Alert
     this.duplicateTopicModal = document.getElementById("duplicateTopicModal");
     this.duplicateModalMessage = document.getElementById("duplicateModalMessage");
     this.btnCloseDuplicateModal = document.getElementById("btnCloseDuplicateModal");
     this.btnCancelDuplicateModal = document.getElementById("btnCancelDuplicateModal");
     this.btnConfirmDuplicateUpdate = document.getElementById("btnConfirmDuplicateUpdate");
+    this.trickTopicDuplicateNotice = document.getElementById("trickTopicDuplicateNotice");
 
     // Theory Modal elements
     this.theoryModalTitle = document.getElementById("theoryModalTitle");
@@ -358,8 +381,8 @@ class AppController {
 
     const sectionLabels = {
       units: "Units",
-      theory: "Theory",
-      tricks: "Tricks",
+      syllabus: "Syllabus",
+      tricks: "Topics",
       questions: "Questions",
       notepad: "Notepad",
       bin: "Recycle Bin"
@@ -494,10 +517,11 @@ class AppController {
     // Delegated Events: Units List Container
     if (this.unitsListContainer) {
       this.unitsListContainer.addEventListener("click", (e) => {
-        const theoryBtn = e.target.closest(".btn-go-theory");
-        if (theoryBtn) {
-          this.theoryDisplayLimit = 25;
-          this.navigateToSection("theory", theoryBtn.getAttribute("data-unit-id"), true);
+        const syllabusBtn = e.target.closest(".btn-go-syllabus");
+        if (syllabusBtn) {
+          const uId = syllabusBtn.getAttribute("data-unit-id");
+          if (this._openSyllabusUnits) this._openSyllabusUnits.add(uId);
+          this.navigateToSection("syllabus", uId, true);
           return;
         }
         const tricksBtn = e.target.closest(".btn-go-tricks");
@@ -752,18 +776,116 @@ class AppController {
         if (this._onDuplicateCancel) this._onDuplicateCancel();
       });
     }
+    if (this.btnConfirmDuplicateUpdate) {
+      this.btnConfirmDuplicateUpdate.addEventListener("click", () => {
+        const matched = this._pendingDuplicateTopic;
+        this.closeDuplicateModal();
+        if (this._onDuplicateUpdate && matched) {
+          this._onDuplicateUpdate(matched);
+        } else if (matched && matched.id) {
+          this.closeAllModals();
+          this.openEditTrickModal(matched.id);
+          showToast(`Switched to editing existing topic "${matched.title}".`, "info");
+        }
+      });
+    }
 
-    // Check duplicate when topic title input loses focus (blur)
-    if (this.theoryModalTopicTitle) {
-      this.theoryModalTopicTitle.addEventListener("blur", () => {
-        const title = this.theoryModalTopicTitle.value.trim();
-        const topicId = this.theoryModalTopicId.value;
-        if (!title) return;
+    // Real-Time Duplicate Topic Check While Writing Title
+    if (this.trickModalTitleInput) {
+      let titleCheckDebounce = null;
+      this.trickModalTitleInput.addEventListener("input", (e) => {
+        clearTimeout(titleCheckDebounce);
+        titleCheckDebounce = setTimeout(() => {
+          const title = e.target.value.trim();
+          const trickId = this.trickModalTrickId ? this.trickModalTrickId.value : null;
+          if (!title || title.length < 3) {
+            if (this.trickTopicDuplicateNotice) this.trickTopicDuplicateNotice.style.display = "none";
+            return;
+          }
 
+          const state = store.getState();
+          const match = dataManager.findSimilarTopic(state.activePaper, title, trickId || null);
+          if (match && this.trickTopicDuplicateNotice) {
+            this.trickTopicDuplicateNotice.innerHTML = `
+              <div class="duplicate-notice-inner">
+                <span class="notice-icon">⚠️</span>
+                <div class="notice-body">
+                  <strong>Similar topic already exists:</strong> "${escapeHtml(match.topic.title)}" in <em>${escapeHtml(match.unit.name || match.unit.title)}</em>.
+                  <p>You cannot rewrite an existing topic. Would you like to update it instead?</p>
+                  <button type="button" id="btnInlineUpdateTopic" class="btn-notice-update">✏️ Update "${escapeHtml(match.topic.title)}" Instead</button>
+                </div>
+              </div>
+            `;
+            this.trickTopicDuplicateNotice.style.display = "block";
+
+            const inlineBtn = document.getElementById("btnInlineUpdateTopic");
+            if (inlineBtn) {
+              inlineBtn.addEventListener("click", () => {
+                this.closeAllModals();
+                this.openEditTrickModal(match.topic.id);
+                showToast(`Switched to updating existing topic "${match.topic.title}".`, "info");
+              });
+            }
+          } else if (this.trickTopicDuplicateNotice) {
+            this.trickTopicDuplicateNotice.style.display = "none";
+          }
+        }, 180);
+      });
+    }
+
+    // Syllabus: Accordion expand/collapse and Checkbox toggles
+    if (this.syllabusUnitsContainer) {
+      this.syllabusUnitsContainer.addEventListener("click", (e) => {
+        const header = e.target.closest(".syllabus-unit-accordion-header");
+        if (header) {
+          const card = header.closest(".syllabus-unit-accordion-card");
+          const unitId = header.getAttribute("data-unit-id");
+          const isOpen = card.classList.toggle("is-open");
+          if (isOpen) {
+            this._openSyllabusUnits.add(unitId);
+          } else {
+            this._openSyllabusUnits.delete(unitId);
+          }
+          return;
+        }
+      });
+
+      this.syllabusUnitsContainer.addEventListener("change", (e) => {
+        const cb = e.target.closest(".syllabus-topic-checkbox");
+        if (cb) {
+          const topicId = cb.getAttribute("data-topic-id");
+          const state = store.getState();
+          const covered = syllabusManager.toggleTopic(state.activePaper, topicId);
+          const row = cb.closest(".syllabus-item-row");
+          if (row) row.classList.toggle("is-covered", covered);
+          this.updateSyllabusProgressOnly();
+        }
+      });
+    }
+
+    if (this.syllabusMustCoverContainer) {
+      this.syllabusMustCoverContainer.addEventListener("change", (e) => {
+        const cb = e.target.closest(".syllabus-topic-checkbox");
+        if (cb) {
+          const topicId = cb.getAttribute("data-topic-id");
+          const state = store.getState();
+          const covered = syllabusManager.toggleTopic(state.activePaper, topicId);
+          const row = cb.closest(".syllabus-item-row");
+          if (row) row.classList.toggle("is-covered", covered);
+          this.updateSyllabusProgressOnly();
+        }
+      });
+    }
+
+    // Syllabus: Reset Checklist Button
+    if (this.btnResetSyllabus) {
+      this.btnResetSyllabus.addEventListener("click", () => {
         const state = store.getState();
-        const existing = dataManager.findTheoryTopicByTitle(state.activePaper, title, topicId || null);
-        if (existing) {
-          showToast(`⚠️ Topic "${title}" already exists in ${existing.unit.name || existing.unit.title}. Duplicates not allowed.`, "warning");
+        const pLabel = state.activePaper === "paper1" ? "Paper 1" : "Paper 2";
+        if (confirm(`Reset all marked checklist topics for ${pLabel}?`)) {
+          syllabusManager.resetProgress(state.activePaper);
+          this.renderSyllabusSection();
+          showToast(`Checklist reset for ${pLabel}.`, "info");
         }
       });
     }
@@ -1365,11 +1487,14 @@ class AppController {
     }
   }
 
-  showDuplicateTopicPrompt({ title, unitTitle, onCancel }) {
+  showDuplicateTopicPrompt({ title, existingTopic, unitTitle, onUpdate, onCancel }) {
     this._onDuplicateCancel = onCancel;
+    this._onDuplicateUpdate = onUpdate;
+    this._pendingDuplicateTopic = existingTopic;
 
     if (this.duplicateModalMessage) {
-      this.duplicateModalMessage.innerHTML = `The topic <strong>"${escapeHtml(title)}"</strong> already exists in <em>${escapeHtml(unitTitle)}</em>.<br><br>Duplicate topics are not allowed in the same paper. Please choose a different topic title.`;
+      const matchTitle = existingTopic ? existingTopic.title : title;
+      this.duplicateModalMessage.innerHTML = `A topic matching this concept already exists in this paper:<br><br><strong style="color: var(--accent-trick, #f59e0b);">"${escapeHtml(matchTitle)}"</strong> in <em>${escapeHtml(unitTitle)}</em>.<br><br>Duplicate topics cannot be rewritten. Would you like to update the existing topic instead?`;
     }
 
     if (this.modalOverlay) this.modalOverlay.style.display = "block";
@@ -1498,7 +1623,7 @@ class AppController {
     const defaultUnitId = state.selectedUnitId !== "all" ? state.selectedUnitId : "general";
 
     this.populateModalUnitOptions(this.trickModalUnitSelect, defaultUnitId);
-    this.trickModalTitle.textContent = "➕ Add Short Trick";
+    this.trickModalTitle.textContent = "➕ Add Topic";
     this.trickModalTrickId.value = "";
     this.trickModalTitleInput.value = "";
     if (this.trickModalLightbulb) this.trickModalLightbulb.value = "";
@@ -1507,6 +1632,7 @@ class AppController {
     if (trickEditor) trickEditor.clear();
     this.trickModalProTip.value = "";
     this.trickModalUnitSelect.disabled = false;
+    if (this.trickTopicDuplicateNotice) this.trickTopicDuplicateNotice.style.display = "none";
 
     this.pushModalState("addTrick");
     this.modalOverlay.style.display = "block";
@@ -1521,7 +1647,7 @@ class AppController {
 
     const { trick, unit } = match;
     this.populateModalUnitOptions(this.trickModalUnitSelect, unit.id);
-    this.trickModalTitle.textContent = "✏️ Edit Short Trick";
+    this.trickModalTitle.textContent = "✏️ Edit Topic";
     this.trickModalTrickId.value = trick.id;
     this.trickModalTitleInput.value = trick.title;
     if (this.trickModalLightbulb) {
@@ -1535,6 +1661,7 @@ class AppController {
     this.trickModalProTip.value = trick.proTip || "";
     // Allow changing unit while editing!
     this.trickModalUnitSelect.disabled = false;
+    if (this.trickTopicDuplicateNotice) this.trickTopicDuplicateNotice.style.display = "none";
 
     this.pushModalState("editTrick");
     this.modalOverlay.style.display = "block";
@@ -1558,12 +1685,28 @@ class AppController {
       return;
     }
 
-    // Check duplicate trick: strictly prevent duplicates
-    const existingTrick = dataManager.findTrickByTitle(state.activePaper, title, trickId || null);
-    if (existingTrick) {
-      showToast(`A trick titled "${title}" already exists in ${existingTrick.unit.name || existingTrick.unit.title}! Duplicates not allowed.`, "warning");
-      this.trickModalTitleInput.focus();
-      this.trickModalTitleInput.select();
+    // Check duplicate topic using fuzzy similarity across words and concepts
+    const similarMatch = dataManager.findSimilarTopic(state.activePaper, title, trickId || null);
+    if (similarMatch) {
+      const matchTopic = similarMatch.topic;
+      const matchUnit = similarMatch.unit;
+      const unitTitle = matchUnit.name || matchUnit.title || "this paper";
+      this.showDuplicateTopicPrompt({
+        title: title,
+        existingTopic: matchTopic,
+        unitTitle: unitTitle,
+        onUpdate: (existing) => {
+          this.closeAllModals();
+          this.openEditTrickModal(existing.id);
+          showToast(`Switched to editing existing topic "${existing.title}".`, "info");
+        },
+        onCancel: () => {
+          if (this.trickModalTitleInput) {
+            this.trickModalTitleInput.focus();
+            this.trickModalTitleInput.select();
+          }
+        }
+      });
       return;
     }
 
@@ -1575,19 +1718,19 @@ class AppController {
         if (oldUnitId && oldUnitId !== unitId) {
           const newUnit = store.getCurrentPaperData().units.find(u => u.id === unitId);
           const uLabel = newUnit ? (newUnit.id === "general" ? "General Points" : `Unit ${newUnit.unitNumber}`) : "new unit";
-          showToast(`Trick updated and moved to ${uLabel}!`, "success");
+          showToast(`Topic updated and moved to ${uLabel}!`, "success");
         } else {
-          showToast("Trick updated successfully!", "success");
+          showToast("Topic updated successfully!", "success");
         }
       } else {
-        showToast("Could not update trick.", "error");
+        showToast("Could not update topic.", "error");
       }
     } else {
       const added = dataManager.addTrick(state.activePaper, unitId, { title, lightbulb, mnemonic, explanation, proTip });
       if (added) {
-        showToast("New trick added successfully!", "success");
+        showToast("New topic added successfully!", "success");
       } else {
-        showToast("Could not add trick. Duplicate title exists.", "warning");
+        showToast("Could not add topic. Duplicate title exists.", "warning");
       }
     }
 
@@ -1954,14 +2097,17 @@ class AppController {
       }
     });
 
-    // Filter Bar visibility (Units, Theory, Tricks, Questions)
-    const showFilterBar = state.activeSection === "units" || state.activeSection === "theory" || state.activeSection === "tricks" || state.activeSection === "questions";
+    // Filter Bar visibility (Units, Topics, Questions)
+    const showFilterBar = state.activeSection === "units" || state.activeSection === "tricks" || state.activeSection === "questions";
     if (this.filterBar) {
       this.filterBar.style.display = showFilterBar ? "flex" : "none";
     }
 
     // Sections visibility
     this.unitsSection.style.display = state.activeSection === "units" ? "flex" : "none";
+    if (this.syllabusSection) {
+      this.syllabusSection.style.display = state.activeSection === "syllabus" ? "flex" : "none";
+    }
     this.theorySection.style.display = state.activeSection === "theory" ? "flex" : "none";
     this.tricksSection.style.display = state.activeSection === "tricks" ? "flex" : "none";
     this.questionsSection.style.display = state.activeSection === "questions" ? "flex" : "none";
@@ -1976,6 +2122,9 @@ class AppController {
     switch (state.activeSection) {
       case "units":
         this.renderUnitsSection(paperData);
+        break;
+      case "syllabus":
+        this.renderSyllabusSection();
         break;
       case "theory":
         this.renderTheorySection(paperData);
@@ -1994,6 +2143,7 @@ class AppController {
         break;
     }
 
+    this.updateSyllabusBadge();
     this.updateQuestionsBadge();
     this.updateNotesBadge();
     this.updateBinBadge();
@@ -2095,11 +2245,12 @@ class AppController {
             </div>
           </div>
           <div class="unit-actions-row">
-            <button class="unit-action-btn btn-go-theory" data-unit-id="${u.id}">
-              📖 Theory (${theoryCount})
-            </button>
-            <button class="unit-action-btn btn-go-tricks" data-unit-id="${u.id}">
-              💡 Tricks (${tricksCount})
+            ${!isGeneral ? `
+            <button class="unit-action-btn btn-go-syllabus" data-unit-id="${u.id}" title="View official syllabus and track covered topics">
+              📋 Syllabus
+            </button>` : ''}
+            <button class="unit-action-btn btn-go-tricks" data-unit-id="${u.id}" title="View topic notes and tricks">
+              💡 Topics (${tricksCount})
             </button>
             ${!isGeneral ? `
             <button class="unit-action-btn btn-go-questions" data-unit-id="${u.id}">
@@ -2399,13 +2550,13 @@ class AppController {
       );
     }
 
-    this.tricksCountBadge.textContent = `${allTricks.length} Tricks`;
+    this.tricksCountBadge.textContent = `${allTricks.length} Topics`;
 
     if (allTricks.length === 0) {
       this.tricksContainer.innerHTML = `
         <div class="empty-state">
           <div class="empty-icon">💡</div>
-          <p>No short tricks matching the current filter.</p>
+          <p>No topics matching the current filter.</p>
         </div>
       `;
       return;
@@ -2421,7 +2572,7 @@ class AppController {
     let html = "";
     visibleTricks.forEach((tr, trIdx) => {
       const colorTheme = trickThemes[trIdx % trickThemes.length];
-      const directBulbText = tr.lightbulb ? tr.lightbulb : `${tr.title} Key Trick`;
+      const directBulbText = tr.lightbulb ? tr.lightbulb : `${tr.title} Key Note`;
 
       html += `
         <div class="trick-card theme-${colorTheme}" data-trick-id="${tr.id}">
@@ -2434,10 +2585,10 @@ class AppController {
               <button class="card-btn-action copy-trick-btn" data-text="${escapeAttr(tr.mnemonic + ' - ' + tr.explanation)}">
                 📋 Copy
               </button>
-              <button class="card-btn-action edit btn-edit-trick" data-trick-id="${tr.id}" title="Edit Trick">
+              <button class="card-btn-action edit btn-edit-trick" data-trick-id="${tr.id}" title="Edit Topic">
                 ✏️ Edit
               </button>
-              <button class="card-btn-action delete btn-delete-trick" data-trick-id="${tr.id}" title="Delete Trick">
+              <button class="card-btn-action delete btn-delete-trick" data-trick-id="${tr.id}" title="Delete Topic">
                 🗑️ Delete
               </button>
             </div>
@@ -2477,7 +2628,7 @@ class AppController {
       html += `
         <div class="load-more-container" style="display: flex; justify-content: center; margin: 1.5rem 0;">
           <button id="btnLoadMoreTricks" class="btn-load-more" type="button" style="background: var(--bg-card); border: 1.5px solid var(--accent-trick); color: var(--accent-trick); font-weight: 800; font-size: 0.88rem; padding: 0.75rem 1.6rem; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-            💡 Load More Tricks (Showing ${visibleTricks.length} of ${allTricks.length})
+            💡 Load More Topics (Showing ${visibleTricks.length} of ${allTricks.length})
           </button>
         </div>
       `;
@@ -2546,6 +2697,197 @@ class AppController {
     const count = notesManager.getNotesByPaper(state.activePaper).length;
     if (this.notesCountBadge) {
       this.notesCountBadge.textContent = `${count} Points`;
+    }
+  }
+
+  // --- SYLLABUS CONTROLLER & CHECKLIST ---
+
+  updateSyllabusBadge() {
+    const state = store.getState();
+    const syllabus = state.activePaper === "paper1" ? paper1Syllabus : paper2Syllabus;
+    const progress = syllabusManager.getOverallProgress(state.activePaper, syllabus);
+
+    if (this.tabSyllabusBadge) {
+      this.tabSyllabusBadge.textContent = `${progress.percent}%`;
+    }
+    if (this.syllabusProgressBadge) {
+      this.syllabusProgressBadge.textContent = `${progress.covered}/${progress.total} Covered (${progress.percent}%)`;
+    }
+    if (this.syllabusProgressBarFill) {
+      this.syllabusProgressBarFill.style.width = `${progress.percent}%`;
+    }
+    if (this.syllabusProgressText) {
+      this.syllabusProgressText.textContent = `${progress.covered} of ${progress.total} topics covered`;
+    }
+    if (this.syllabusPercentText) {
+      this.syllabusPercentText.textContent = `${progress.percent}% Complete`;
+    }
+  }
+
+  updateSyllabusProgressOnly() {
+    this.updateSyllabusBadge();
+    const state = store.getState();
+    const syllabus = state.activePaper === "paper1" ? paper1Syllabus : paper2Syllabus;
+
+    if (this.syllabusUnitsContainer) {
+      const cards = this.syllabusUnitsContainer.querySelectorAll(".syllabus-unit-accordion-card");
+      cards.forEach(card => {
+        const uId = card.getAttribute("data-unit-id");
+        const unitObj = syllabus.units.find(u => u.id === uId);
+        if (!unitObj) return;
+        const uProg = syllabusManager.getUnitProgress(state.activePaper, unitObj);
+        const pill = card.querySelector(".unit-progress-pill");
+        const fill = card.querySelector(".unit-progress-bar-fill");
+        if (pill) {
+          pill.textContent = `${uProg.covered}/${uProg.total} (${uProg.percent}%)`;
+          pill.classList.toggle("completed", uProg.covered === uProg.total && uProg.total > 0);
+        }
+        if (fill) fill.style.width = `${uProg.percent}%`;
+        card.classList.toggle("is-all-covered", uProg.covered === uProg.total && uProg.total > 0);
+      });
+    }
+
+    if (this.syllabusMustCoverContainer && syllabus.mustCover) {
+      let mcCovered = 0;
+      syllabus.mustCover.forEach(mc => {
+        if (syllabusManager.isCovered(state.activePaper, mc.id)) mcCovered++;
+      });
+      const mcTotal = syllabus.mustCover.length;
+      const mcPercent = Math.round((mcCovered / mcTotal) * 100);
+      const statBadge = this.syllabusMustCoverContainer.querySelector(".must-cover-stat-badge");
+      if (statBadge) {
+        statBadge.textContent = `${mcCovered}/${mcTotal} (${mcPercent}%)`;
+      }
+    }
+  }
+
+  renderSyllabusSection() {
+    const state = store.getState();
+    const isP1 = state.activePaper === "paper1";
+    const syllabus = isP1 ? paper1Syllabus : paper2Syllabus;
+
+    if (this.syllabusSectionTitle) {
+      this.syllabusSectionTitle.textContent = isP1
+        ? "Paper 1 Official UGC NET / SET Syllabus"
+        : "Paper 2 (Computer Science) Official Syllabus";
+    }
+
+    this.updateSyllabusBadge();
+
+    // Render Unit Accordion Cards
+    if (this.syllabusUnitsContainer) {
+      let unitsHtml = "";
+      syllabus.units.forEach(unit => {
+        const uProg = syllabusManager.getUnitProgress(state.activePaper, unit);
+        const isOpen = this._openSyllabusUnits && this._openSyllabusUnits.has(unit.id);
+        const isComplete = uProg.covered === uProg.total && uProg.total > 0;
+
+        unitsHtml += `
+          <div class="syllabus-unit-accordion-card ${isOpen ? "is-open" : ""} ${isComplete ? "is-all-covered" : ""}" data-unit-id="${unit.id}">
+            <div class="syllabus-unit-accordion-header" data-unit-id="${unit.id}">
+              <div class="unit-acc-left">
+                <span class="unit-acc-icon">${unit.icon || "📚"}</span>
+                <div class="unit-acc-title-wrap">
+                  <div class="unit-acc-meta">
+                    <span class="unit-acc-num">Unit ${unit.unitNumber}</span>
+                    <span class="unit-progress-pill ${isComplete ? "completed" : ""}">${uProg.covered}/${uProg.total} (${uProg.percent}%)</span>
+                  </div>
+                  <h3 class="unit-acc-name">${escapeHtml(unit.name)}</h3>
+                </div>
+              </div>
+              <div class="unit-acc-right">
+                <div class="unit-acc-mini-progress">
+                  <div class="unit-progress-bar-fill" style="width: ${uProg.percent}%;"></div>
+                </div>
+                <span class="acc-chevron">▼</span>
+              </div>
+            </div>
+
+            <div class="syllabus-unit-accordion-body">
+              <div class="syllabus-topics-list">
+                ${unit.subtopics.map(st => {
+                  const covered = syllabusManager.isCovered(state.activePaper, st.id);
+                  return `
+                    <label class="syllabus-item-row ${covered ? "is-covered" : ""}" for="cb-${st.id}">
+                      <input
+                        type="checkbox"
+                        id="cb-${st.id}"
+                        class="syllabus-topic-checkbox"
+                        data-topic-id="${st.id}"
+                        ${covered ? "checked" : ""}
+                      />
+                      <span class="syllabus-custom-checkbox"></span>
+                      <div class="syllabus-item-content">
+                        <span class="syllabus-item-title">${escapeHtml(st.title)}</span>
+                        ${st.keyConcepts ? `<span class="syllabus-item-concepts">${escapeHtml(st.keyConcepts)}</span>` : ""}
+                      </div>
+                    </label>
+                  `;
+                }).join("")}
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      this.syllabusUnitsContainer.innerHTML = unitsHtml;
+    }
+
+    // Render "Must Cover" High-Yield Out-of-Syllabus Section
+    if (this.syllabusMustCoverContainer) {
+      if (syllabus.mustCover && syllabus.mustCover.length > 0) {
+        let mcCoveredCount = 0;
+        syllabus.mustCover.forEach(mc => {
+          if (syllabusManager.isCovered(state.activePaper, mc.id)) mcCoveredCount++;
+        });
+        const mcTotal = syllabus.mustCover.length;
+        const mcPercent = Math.round((mcCoveredCount / mcTotal) * 100);
+
+        let mcHtml = `
+          <div class="must-cover-card">
+            <div class="must-cover-card-header">
+              <div class="must-cover-header-main">
+                <span class="must-cover-fire-icon">🔥</span>
+                <div>
+                  <div class="must-cover-meta-row">
+                    <span class="must-cover-badge">EXAM ESSENTIALS</span>
+                    <span class="must-cover-out-badge">Out of Syllabus • Always Asked</span>
+                    <span class="must-cover-stat-badge">${mcCoveredCount}/${mcTotal} (${mcPercent}%)</span>
+                  </div>
+                  <h3 class="must-cover-heading">Must Cover: High-Yield Exam Topics</h3>
+                  <p class="must-cover-subheading">Topics not explicitly detailed in official bullet points, but consistently tested across recent UGC NET & MH-SET exam sessions.</p>
+                </div>
+              </div>
+            </div>
+            <div class="must-cover-list">
+              ${syllabus.mustCover.map(mc => {
+                const covered = syllabusManager.isCovered(state.activePaper, mc.id);
+                return `
+                  <label class="syllabus-item-row must-cover-item ${covered ? "is-covered" : ""}" for="cb-${mc.id}">
+                    <input
+                      type="checkbox"
+                      id="cb-${mc.id}"
+                      class="syllabus-topic-checkbox"
+                      data-topic-id="${mc.id}"
+                      ${covered ? "checked" : ""}
+                    />
+                    <span class="syllabus-custom-checkbox"></span>
+                    <div class="syllabus-item-content">
+                      <div class="mc-title-row">
+                        <span class="syllabus-item-title">${escapeHtml(mc.title)}</span>
+                        <span class="mc-pill-why">⚡ ${escapeHtml(mc.whyImportant)}</span>
+                      </div>
+                      ${mc.concepts ? `<span class="syllabus-item-concepts">${escapeHtml(mc.concepts)}</span>` : ""}
+                    </div>
+                  </label>
+                `;
+              }).join("")}
+            </div>
+          </div>
+        `;
+        this.syllabusMustCoverContainer.innerHTML = mcHtml;
+      } else {
+        this.syllabusMustCoverContainer.innerHTML = "";
+      }
     }
   }
 

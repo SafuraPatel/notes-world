@@ -92,12 +92,25 @@ export class NotesManager {
       if (res.ok) {
         const json = await res.json();
         if (json && json.success && json.notes && Array.isArray(json.notes)) {
-          const currentStr = JSON.stringify(this.notes);
-          const incomingStr = JSON.stringify(json.notes);
-          if (currentStr !== incomingStr) {
-            this.notes = json.notes;
-            localStorage.setItem(STORAGE_KEY, incomingStr);
+          // Lossless union merge: NEVER erase local notes during cloud sync!
+          const localIds = new Set(this.notes.map(n => n.id));
+          const localTitles = new Set(this.notes.map(n => (n.title || "").trim().toLowerCase()));
+          let addedNew = false;
+
+          json.notes.forEach(cn => {
+            const cTitle = (cn.title || "").trim().toLowerCase();
+            if (!localIds.has(cn.id) && !localTitles.has(cTitle)) {
+              this.notes.push(cn);
+              addedNew = true;
+            }
+          });
+
+          if (addedNew) {
+            this.notes.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+            const mergedStr = JSON.stringify(this.notes);
+            localStorage.setItem(STORAGE_KEY, mergedStr);
             this.notifyListeners();
+            this.syncToCloud();
             return true;
           }
         }
@@ -128,7 +141,10 @@ export class NotesManager {
 
   saveToStorage() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.notes));
+      const dataStr = JSON.stringify(this.notes);
+      // Rolling safety backup snapshot
+      localStorage.setItem(`${STORAGE_KEY}_backup`, dataStr);
+      localStorage.setItem(STORAGE_KEY, dataStr);
       this.notifyListeners();
       this.syncToCloud();
     } catch (e) {
