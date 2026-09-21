@@ -22,12 +22,25 @@ export class BinManager {
     }, 3500);
   }
 
+  normalizeBinItem(it) {
+    if (!it) return it;
+    if (!it.paper) {
+      it.paper = (it.unitId && String(it.unitId).startsWith("p2-")) ? "paper2" : "paper1";
+    }
+    if (it.type === "trick" && (!it.typeName || it.typeName === "Short Trick")) {
+      it.typeName = "Topic";
+    }
+    return it;
+  }
+
   loadItems() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) {
+          return parsed.map(it => this.normalizeBinItem(it));
+        }
       }
     } catch (e) {
       console.error("Failed to load recycle bin from localStorage:", e);
@@ -74,10 +87,11 @@ export class BinManager {
               return false;
             }
 
+            const normalizedCloud = json.bin.map(it => this.normalizeBinItem(it));
             const currentStr = JSON.stringify(this.items);
-            const incomingStr = JSON.stringify(json.bin);
+            const incomingStr = JSON.stringify(normalizedCloud);
             if (currentStr !== incomingStr) {
-              this.items = json.bin;
+              this.items = normalizedCloud;
               localStorage.setItem(STORAGE_KEY, incomingStr);
               this.notify();
               return true;
@@ -102,7 +116,7 @@ export class BinManager {
           "Content-Type": "application/json",
           "Cache-Control": "no-cache"
         },
-        body: JSON.stringify({ type: "bin", bin: this.items })
+        body: JSON.stringify({ type: "bin", bin: this.items.map(it => this.normalizeBinItem(it)) })
       });
     } catch (e) {
       // Offline fallback
@@ -111,6 +125,7 @@ export class BinManager {
 
   save() {
     try {
+      this.items = this.items.map(it => this.normalizeBinItem(it));
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.items));
       this.notify();
       this.syncToCloud();
@@ -135,12 +150,13 @@ export class BinManager {
    */
   addItem({ type, typeName, paper, unitId, unitName, title, data }) {
     localStorage.removeItem(STORAGE_KEY + "_emptied");
+    const effectivePaper = paper || (unitId && String(unitId).startsWith("p2-") ? "paper2" : "paper1");
     const entry = {
       id: "bin_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
       originalId: data ? data.id : null,
-      type: type || "theory", // 'theory' | 'trick' | 'note'
-      typeName: typeName || (type === "theory" ? "Theory Topic" : type === "trick" ? "Short Trick" : "Notepad Point"),
-      paper: paper || "paper1",
+      type: type || "trick",
+      typeName: typeName || (type === "trick" ? "Topic" : type === "theory" ? "Theory Topic" : "Notepad Point"),
+      paper: effectivePaper,
       unitId: unitId || "",
       unitName: unitName || "",
       title: (title || (data ? data.title : "") || "Untitled").trim(),
@@ -161,6 +177,7 @@ export class BinManager {
     if (idx === -1) return null;
 
     const [item] = this.items.splice(idx, 1);
+    this.normalizeBinItem(item);
     let success = false;
 
     if (item.type === "theory") {
@@ -202,18 +219,19 @@ export class BinManager {
       this.items = [];
       localStorage.setItem(STORAGE_KEY + "_emptied", Date.now().toString());
     } else {
-      this.items = this.items.filter(it => it.paper !== paper);
+      this.items = this.items.filter(it => (it.paper || (it.unitId && String(it.unitId).startsWith("p2-") ? "paper2" : "paper1")) !== paper);
     }
     this.save();
   }
 
   getCount(paper = "all") {
-    if (paper === "all") return this.items.length;
-    return this.items.filter(it => it.paper === paper).length;
+    const list = this.items.map(it => this.normalizeBinItem(it));
+    if (paper === "all") return list.length;
+    return list.filter(it => it.paper === paper).length;
   }
 
   getItems({ paper = "all", type = "all", searchQuery = "" } = {}) {
-    let list = [...this.items];
+    let list = this.items.map(it => this.normalizeBinItem(it));
 
     if (paper && paper !== "all") {
       list = list.filter(it => it.paper === paper);

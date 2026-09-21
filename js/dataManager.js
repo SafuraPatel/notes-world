@@ -188,49 +188,97 @@ export class DataManager {
   }
 
   initPaperData(paperId, storageKey, defaultData) {
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && parsed.units && parsed.units.length > 0) {
-          const removed = this.deduplicatePaperUnits(parsed);
-          this.ensureGeneralUnit(parsed);
+    const pSuffix = paperId === "paper1" ? "p1" : "p2";
+    // Check all historical and backup storage keys for any user-added topics
+    const candidateKeys = [
+      storageKey,
+      `${storageKey}_backup`,
+      `notes_world_data_${pSuffix}_v5`,
+      `notes_world_data_${pSuffix}_v5_backup`,
+      `notes_world_data_${pSuffix}_v4`,
+      `notes_world_data_${pSuffix}_v3`,
+      `notes_world_data_${pSuffix}_v2`,
+      `notes_world_data_${pSuffix}_v1`,
+      `notes_world_data_${pSuffix}`,
+      `notes_world_${paperId}`
+    ];
 
-          // Update canonical unit names to short names while preserving user topics and tricks
-          let namesUpdated = false;
-          parsed.units.forEach(u => {
-            const defU = defaultData.units.find(du => du.id === u.id);
-            if (defU && defU.name && u.name !== defU.name) {
-              u.name = defU.name;
-              namesUpdated = true;
-            }
-          });
+    let baseData = null;
+    const allKnownTricks = new Map();
 
-          if (removed > 0 || namesUpdated) {
-            try {
-              localStorage.setItem(storageKey, JSON.stringify(parsed));
-            } catch (_) {}
-            if (namesUpdated) {
-              this.syncToCloud(paperId);
+    for (const key of candidateKeys) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.units && Array.isArray(parsed.units) && parsed.units.length > 0) {
+            if (!baseData) {
+              baseData = parsed;
             }
+            parsed.units.forEach(u => {
+              if (u.shortTricks && Array.isArray(u.shortTricks)) {
+                u.shortTricks.forEach(tr => {
+                  if (tr && tr.title) {
+                    const cleanKey = (tr.title || "").trim().toLowerCase();
+                    if (!allKnownTricks.has(cleanKey)) {
+                      allKnownTricks.set(cleanKey, { unitId: u.id, trick: tr });
+                    }
+                  }
+                });
+              }
+            });
           }
-          return parsed;
         }
-      }
-    } catch (e) {
-      console.error(`Failed to load ${paperId} from storage:`, e);
+      } catch (e) {}
     }
 
-    // Clone deep and assign IDs to every topic and trick
-    const cloned = JSON.parse(JSON.stringify(defaultData));
-    cloned.units.forEach((unit, uIdx) => {
-      if (unit.theoryNotes) {
-        unit.theoryNotes.forEach((t, tIdx) => {
-          if (!t.id) {
-            t.id = `${unit.id}_theory_${tIdx}_${Date.now()}`;
+    if (!baseData) {
+      baseData = JSON.parse(JSON.stringify(defaultData));
+    }
+
+    this.ensureGeneralUnit(baseData);
+
+    // Make sure all default units exist & unit names are canonical
+    defaultData.units.forEach(defU => {
+      let existingU = baseData.units.find(u => u.id === defU.id);
+      if (!existingU) {
+        existingU = JSON.parse(JSON.stringify(defU));
+        baseData.units.push(existingU);
+      } else {
+        if (defU.name) existingU.name = defU.name;
+      }
+    });
+
+    // Ensure all default tricks are present
+    defaultData.units.forEach(defU => {
+      const targetU = baseData.units.find(u => u.id === defU.id);
+      if (targetU && defU.shortTricks) {
+        if (!targetU.shortTricks) targetU.shortTricks = [];
+        const existingTrickTitles = new Set(targetU.shortTricks.map(t => (t.title || "").trim().toLowerCase()));
+        defU.shortTricks.forEach(dt => {
+          const dtTitle = (dt.title || "").trim().toLowerCase();
+          if (!existingTrickTitles.has(dtTitle)) {
+            targetU.shortTricks.push(JSON.parse(JSON.stringify(dt)));
+            existingTrickTitles.add(dtTitle);
           }
         });
       }
+    });
+
+    // Merge any user-added custom tricks discovered across historical localStorage keys
+    allKnownTricks.forEach(({ unitId, trick }) => {
+      let targetUnit = baseData.units.find(u => u.id === unitId);
+      if (!targetUnit) targetUnit = baseData.units.find(u => u.id === "general") || baseData.units[0];
+      if (!targetUnit.shortTricks) targetUnit.shortTricks = [];
+      const trTitle = (trick.title || "").trim().toLowerCase();
+      const alreadyInUnit = targetUnit.shortTricks.some(t => (t.title || "").trim().toLowerCase() === trTitle || (trick.id && t.id === trick.id));
+      if (!alreadyInUnit) {
+        targetUnit.shortTricks.unshift(trick);
+      }
+    });
+
+    // Assign IDs to every trick missing an ID
+    baseData.units.forEach((unit, uIdx) => {
       if (unit.shortTricks) {
         unit.shortTricks.forEach((tr, trIdx) => {
           if (!tr.id) {
@@ -240,14 +288,14 @@ export class DataManager {
       }
     });
 
-    this.ensureGeneralUnit(cloned);
+    this.deduplicatePaperUnits(baseData);
 
     try {
-      localStorage.setItem(storageKey, JSON.stringify(cloned));
+      localStorage.setItem(storageKey, JSON.stringify(baseData));
     } catch (e) {
       console.warn(`Could not save initial ${paperId} data:`, e);
     }
-    return cloned;
+    return baseData;
   }
 
   safeMergePaperData(localPaper, cloudPaper) {
@@ -598,24 +646,6 @@ export class DataManager {
           }
         }
       }
-
-      // 2. Search existing Theory Notes (so previous theory topics are also not duplicated)
-      if (unit.theoryNotes) {
-        for (const th of unit.theoryNotes) {
-          if (excludeId && th.id === excludeId) continue;
-          const sim = checkTopicTitleSimilarity(title, th.title);
-          if (sim.isSimilar && sim.score > highestScore) {
-            highestScore = sim.score;
-            bestMatch = {
-              topic: th,
-              unit,
-              type: "theory",
-              score: sim.score,
-              reason: sim.reason
-            };
-          }
-        }
-      }
     }
 
     return bestMatch;
@@ -741,20 +771,18 @@ export class DataManager {
 
   restoreTrick(paperId, unitId, trickData) {
     if (!trickData) return false;
+    if (!paperId || !this.data[paperId]) {
+      paperId = (unitId && String(unitId).startsWith("p2-")) ? "paper2" : "paper1";
+    }
     const paper = this.data[paperId];
     if (!paper || !paper.units) return false;
     this.ensureGeneralUnit(paper);
 
     let targetUnit = paper.units.find(u => u.id === unitId);
-    if (!targetUnit) targetUnit = paper.units[0];
+    if (!targetUnit) targetUnit = paper.units.find(u => u.id === "general") || paper.units[0];
     if (!targetUnit.shortTricks) targetUnit.shortTricks = [];
 
-    const existingTitleMatch = this.findTrickByTitle(paperId, trickData.title, trickData.id);
-    if (existingTitleMatch) {
-      trickData.title = `${trickData.title} (Restored)`;
-    }
-
-    const existingIdx = targetUnit.shortTricks.findIndex(tr => tr.id === trickData.id);
+    const existingIdx = targetUnit.shortTricks.findIndex(tr => tr.id === trickData.id || (tr.title && tr.title.trim().toLowerCase() === (trickData.title || "").trim().toLowerCase()));
     if (existingIdx !== -1) {
       targetUnit.shortTricks[existingIdx] = trickData;
     } else {

@@ -235,8 +235,10 @@ class AppController {
 
     // Badges & Titles
     this.tabTheoryCountBadge = document.getElementById("tabTheoryCountBadge");
+    this.tabTricksCountBadge = document.getElementById("tabTricksCountBadge");
     this.theorySectionTitle = document.getElementById("theorySectionTitle");
     this.theoryCountBadge = document.getElementById("theoryCountBadge");
+    this.tricksSectionTitle = document.getElementById("tricksSectionTitle");
     this.tricksCountBadge = document.getElementById("tricksCountBadge");
     this.questionsCountBadge = document.getElementById("questionsCountBadge");
     this.questionsSectionTitle = document.getElementById("questionsSectionTitle");
@@ -434,6 +436,7 @@ class AppController {
   }
 
   navigateToSection(section, unitId = null, pushHistory = true) {
+    if (section === "theory") section = "tricks";
     this.closeStickyDropdown();
     const state = store.getState();
     const targetUnitId = unitId !== null ? unitId : state.selectedUnitId;
@@ -609,12 +612,6 @@ class AppController {
           const uId = syllabusBtn.getAttribute("data-unit-id");
           if (this._openSyllabusUnits) this._openSyllabusUnits.add(uId);
           this.navigateToSection("syllabus", uId, true);
-          return;
-        }
-        const theoryBtn = e.target.closest(".btn-go-theory");
-        if (theoryBtn) {
-          this.theoryDisplayLimit = 25;
-          this.navigateToSection("theory", theoryBtn.getAttribute("data-unit-id"), true);
           return;
         }
         const tricksBtn = e.target.closest(".btn-go-tricks");
@@ -2190,8 +2187,8 @@ class AppController {
       }
     });
 
-    // Filter Bar visibility (Units, Syllabus, Theory, Topics, Questions)
-    const showFilterBar = state.activeSection === "units" || state.activeSection === "syllabus" || state.activeSection === "theory" || state.activeSection === "tricks" || state.activeSection === "questions";
+    // Filter Bar visibility (Units, Syllabus, Topics, Questions)
+    const showFilterBar = state.activeSection === "units" || state.activeSection === "syllabus" || state.activeSection === "tricks" || state.activeSection === "questions";
     if (this.filterBar) {
       this.filterBar.style.display = showFilterBar ? "flex" : "none";
     }
@@ -2204,7 +2201,7 @@ class AppController {
       this.syllabusSection.style.display = state.activeSection === "syllabus" ? "flex" : "none";
     }
     if (this.theorySection) {
-      this.theorySection.style.display = state.activeSection === "theory" ? "flex" : "none";
+      this.theorySection.style.display = "none";
     }
     if (this.tricksSection) {
       this.tricksSection.style.display = state.activeSection === "tricks" ? "flex" : "none";
@@ -2230,7 +2227,7 @@ class AppController {
         this.renderSyllabusSection();
         break;
       case "theory":
-        this.renderTheorySection(paperData);
+        this.navigateToSection("tricks", null, false);
         break;
       case "tricks":
         this.renderTricksSection(paperData);
@@ -2247,7 +2244,7 @@ class AppController {
     }
 
     this.updateSyllabusBadge();
-    this.updateTheoryBadge();
+    this.updateTricksBadge();
     this.updateQuestionsBadge();
     this.updateNotesBadge();
     this.updateBinBadge();
@@ -2363,9 +2360,6 @@ class AppController {
             <button class="unit-action-btn btn-go-syllabus" data-unit-id="${u.id}" title="View official syllabus and track covered topics">
               📋 Syllabus
             </button>` : ''}
-            <button class="unit-action-btn btn-go-theory" data-unit-id="${u.id}" title="View in-depth theory notes and diagrams">
-              📖 Theory (${theoryCount})
-            </button>
             <button class="unit-action-btn btn-go-tricks" data-unit-id="${u.id}" title="View topic notes and tricks">
               💡 Topics (${tricksCount})
             </button>
@@ -2680,7 +2674,17 @@ class AppController {
       );
     }
 
+    if (this.tricksSectionTitle) {
+      if (state.selectedUnitId !== "all") {
+        const selU = paperData.units.find(u => u.id === state.selectedUnitId);
+        this.tricksSectionTitle.textContent = selU ? (selU.id === "general" ? "General Points Topics" : `Unit ${selU.unitNumber}: ${selU.name} Topics`) : "Topics";
+      } else {
+        this.tricksSectionTitle.textContent = state.activePaper === "paper1" ? "Paper 1 Topics" : "Paper 2 Topics";
+      }
+    }
+
     this.tricksCountBadge.textContent = `${allTricks.length} Topics`;
+    this.updateTricksBadge();
 
     if (allTricks.length === 0) {
       this.tricksContainer.innerHTML = `
@@ -2840,16 +2844,20 @@ class AppController {
     }
   }
 
-  updateTheoryBadge() {
-    if (!this.tabTheoryCountBadge) return;
+  updateTricksBadge() {
+    if (!this.tabTricksCountBadge) return;
     const paperData = store.getCurrentPaperData();
     let count = 0;
     if (paperData && paperData.units) {
       paperData.units.forEach(u => {
-        if (u.theoryNotes) count += u.theoryNotes.length;
+        if (u.shortTricks) count += u.shortTricks.length;
       });
     }
-    this.tabTheoryCountBadge.textContent = `(${count})`;
+    this.tabTricksCountBadge.textContent = `(${count})`;
+  }
+
+  updateTheoryBadge() {
+    // Theory section cleanly removed per user request
   }
 
   // --- SYLLABUS CONTROLLER & CHECKLIST ---

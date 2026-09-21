@@ -74,13 +74,9 @@
           <span class="tab-icon">📋</span>
           <span class="tab-label">Syllabus <span id="tabSyllabusBadge" class="tab-badge-text">(0%)</span></span>
         </button>
-        <button class="tab-btn" data-section="theory" type="button" role="tab" aria-label="Theory" title="In-Depth Theory Notes">
-          <span class="tab-icon">📖</span>
-          <span class="tab-label">Theory <span id="tabTheoryCountBadge">(0)</span></span>
-        </button>
         <button class="tab-btn" data-section="tricks" type="button" role="tab" aria-label="Topics" title="Topics">
           <span class="tab-icon">💡</span>
-          <span class="tab-label">Topics</span>
+          <span class="tab-label">Topics <span id="tabTricksCountBadge">(0)</span></span>
         </button>
         <button class="tab-btn" data-section="questions" type="button" role="tab" aria-label="Questions"
           title="Questions">
@@ -156,28 +152,6 @@
         </div>
       </section>
 
-      <!-- 2b. THEORY SECTION (Pure In-Depth Notes & Diagrams) -->
-      <section id="theorySection" class="content-section" style="display: none;">
-        <div class="section-header">
-          <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
-            <button class="btn-back-to-home" type="button" title="Back to Units (Home)">
-              ← Units
-            </button>
-            <h2 class="section-title">
-              <span>📖</span>
-              <span id="theorySectionTitle">Theory</span>
-            </h2>
-            <span id="theoryCountBadge" class="section-badge">0 Topics</span>
-          </div>
-          <button id="btnHeaderAddTheory" class="btn-header-add" type="button" title="Add Theory Topic">
-            <span class="btn-add-icon">+</span> Add
-          </button>
-        </div>
-
-        <div id="theoryCardsContainer" class="theory-cards-grid">
-          <!-- Dynamically populated via JS -->
-        </div>
-      </section>
 
       <!-- 3. TOPICS SECTION (Renamed from Tricks) -->
       <section id="tricksSection" class="content-section" style="display: none;">
@@ -333,35 +307,6 @@
     <!-- Modal Backdrop Overlay -->
     <div id="modalOverlay" class="modal-overlay" style="display: none;"></div>
 
-    <!-- 1. Theory Editor / Adder Modal -->
-    <div id="theoryModal" class="app-modal" style="display: none;" role="dialog" aria-modal="true">
-      <div class="modal-header">
-        <h3 id="theoryModalTitle" class="modal-title">Add Theory Topic</h3>
-        <button id="btnCloseTheoryModal" class="modal-close-btn" type="button" aria-label="Close">✕</button>
-      </div>
-      <form id="theoryModalForm" class="modal-form">
-        <input type="hidden" id="theoryModalTopicId" value="">
-        <div class="modal-field">
-          <label for="theoryModalUnitSelect">Select Unit:</label>
-          <select id="theoryModalUnitSelect" class="modal-input" required>
-            <!-- Populated via JS -->
-          </select>
-        </div>
-        <div class="modal-field">
-          <label for="theoryModalTopicTitle">Topic Title:</label>
-          <input type="text" id="theoryModalTopicTitle" class="modal-input"
-            placeholder="e.g. Asymptotic Notations &amp; Recurrences" required>
-        </div>
-        <div class="modal-field">
-          <label>Theory Content (Paste freely, format, bold, highlight, color):</label>
-          <div id="theoryModalEditor" class="rich-editor-box"></div>
-        </div>
-        <div class="modal-actions">
-          <button type="button" id="btnCancelTheoryModal" class="btn-modal-cancel">Cancel</button>
-          <button type="submit" class="btn-modal-save">💾 Save</button>
-        </div>
-      </form>
-    </div>
 
     <!-- 2. Topic Editor / Adder Modal (Renamed from Trick Modal) -->
     <div id="trickModal" class="app-modal" style="display: none;" role="dialog" aria-modal="true">

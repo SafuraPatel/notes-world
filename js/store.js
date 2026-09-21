@@ -57,6 +57,7 @@ class AppStore {
   }
 
   setActiveSection(section) {
+    if (section === "theory") section = "tricks";
     this.state.activeSection = section;
     localStorage.setItem("notes_world_active_section", section);
     this.notify();
