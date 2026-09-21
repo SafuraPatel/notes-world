@@ -62,6 +62,91 @@ function formatBulletText(rawText) {
   return escapeHtml(clean);
 }
 
+export function highlightSearchText(text, searchQuery) {
+  if (text === undefined || text === null) return "";
+  const rawText = String(text);
+  if (!searchQuery || typeof searchQuery !== "string") {
+    return escapeHtml(rawText);
+  }
+  const query = searchQuery.trim();
+  if (query.length < 2) {
+    return escapeHtml(rawText);
+  }
+
+  // Extract distinct search tokens (length >= 2)
+  const rawTokens = query.split(/\s+/).map(t => t.trim()).filter(t => t.length >= 2);
+  const terms = Array.from(new Set(rawTokens.length > 0 ? rawTokens : [query]));
+  terms.sort((a, b) => b.length - a.length);
+
+  const escapedTerms = terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const regex = new RegExp(`(${escapedTerms.join("|")})`, "gi");
+
+  const parts = rawText.split(regex);
+  let out = "";
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (!part) continue;
+    if (i % 2 === 1) {
+      out += `<mark class="search-highlight">${escapeHtml(part)}</mark>`;
+    } else {
+      out += escapeHtml(part);
+    }
+  }
+  return out;
+}
+
+export function highlightHtmlContent(htmlStr, searchQuery) {
+  if (!htmlStr) return "";
+  if (!searchQuery || typeof searchQuery !== "string") return htmlStr;
+  const query = searchQuery.trim();
+  if (query.length < 2) return htmlStr;
+
+  const rawTokens = query.split(/\s+/).map(t => t.trim()).filter(t => t.length >= 2);
+  const terms = Array.from(new Set(rawTokens.length > 0 ? rawTokens : [query]));
+  terms.sort((a, b) => b.length - a.length);
+
+  const escapedTerms = terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const regex = new RegExp(`(${escapedTerms.join("|")})`, "gi");
+
+  if (typeof document !== "undefined") {
+    try {
+      const temp = document.createElement("div");
+      temp.innerHTML = htmlStr;
+
+      const walk = (node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const val = node.nodeValue;
+          if (val && regex.test(val)) {
+            regex.lastIndex = 0;
+            const parts = val.split(regex);
+            let safeSpanHtml = "";
+            for (let i = 0; i < parts.length; i++) {
+              const p = parts[i];
+              if (!p) continue;
+              if (i % 2 === 1) {
+                safeSpanHtml += `<mark class="search-highlight">${escapeHtml(p)}</mark>`;
+              } else {
+                safeSpanHtml += escapeHtml(p);
+              }
+            }
+            const span = document.createElement("span");
+            span.innerHTML = safeSpanHtml;
+            node.parentNode.replaceChild(span, node);
+          }
+        } else if (node.nodeType === Node.ELEMENT_NODE && node.nodeName !== "SCRIPT" && node.nodeName !== "STYLE" && node.nodeName !== "MARK") {
+          Array.from(node.childNodes).forEach(walk);
+        }
+      };
+
+      Array.from(temp.childNodes).forEach(walk);
+      return temp.innerHTML;
+    } catch (_) {
+      return htmlStr;
+    }
+  }
+  return htmlStr;
+}
+
 class AppController {
   constructor() {
     this.initElements();
@@ -2097,21 +2182,31 @@ class AppController {
       }
     });
 
-    // Filter Bar visibility (Units, Topics, Questions)
-    const showFilterBar = state.activeSection === "units" || state.activeSection === "tricks" || state.activeSection === "questions";
+    // Filter Bar visibility (Units, Syllabus, Topics, Questions)
+    const showFilterBar = state.activeSection === "units" || state.activeSection === "syllabus" || state.activeSection === "tricks" || state.activeSection === "questions";
     if (this.filterBar) {
       this.filterBar.style.display = showFilterBar ? "flex" : "none";
     }
 
     // Sections visibility
-    this.unitsSection.style.display = state.activeSection === "units" ? "flex" : "none";
+    if (this.unitsSection) {
+      this.unitsSection.style.display = state.activeSection === "units" ? "flex" : "none";
+    }
     if (this.syllabusSection) {
       this.syllabusSection.style.display = state.activeSection === "syllabus" ? "flex" : "none";
     }
-    this.theorySection.style.display = state.activeSection === "theory" ? "flex" : "none";
-    this.tricksSection.style.display = state.activeSection === "tricks" ? "flex" : "none";
-    this.questionsSection.style.display = state.activeSection === "questions" ? "flex" : "none";
-    this.notepadSection.style.display = state.activeSection === "notepad" ? "flex" : "none";
+    if (this.theorySection) {
+      this.theorySection.style.display = state.activeSection === "theory" ? "flex" : "none";
+    }
+    if (this.tricksSection) {
+      this.tricksSection.style.display = state.activeSection === "tricks" ? "flex" : "none";
+    }
+    if (this.questionsSection) {
+      this.questionsSection.style.display = state.activeSection === "questions" ? "flex" : "none";
+    }
+    if (this.notepadSection) {
+      this.notepadSection.style.display = state.activeSection === "notepad" ? "flex" : "none";
+    }
     if (this.binSection) {
       this.binSection.style.display = state.activeSection === "bin" ? "flex" : "none";
     }
@@ -2208,13 +2303,14 @@ class AppController {
     if (state.selectedUnitId !== "all") {
       unitsList = unitsList.filter(u => u.id === state.selectedUnitId);
     }
-    if (state.searchQuery) {
-      const q = state.searchQuery.toLowerCase();
+    const q = (state.searchQuery || "").trim();
+    if (q) {
+      const qLower = q.toLowerCase();
       unitsList = unitsList.filter(u =>
-        u.name.toLowerCase().includes(q) ||
-        `unit ${u.unitNumber}`.includes(q) ||
-        (u.theoryNotes && u.theoryNotes.some(t => t.title.toLowerCase().includes(q))) ||
-        (u.shortTricks && u.shortTricks.some(tr => tr.title.toLowerCase().includes(q)))
+        u.name.toLowerCase().includes(qLower) ||
+        `unit ${u.unitNumber}`.includes(qLower) ||
+        (u.theoryNotes && u.theoryNotes.some(t => t.title.toLowerCase().includes(qLower))) ||
+        (u.shortTricks && u.shortTricks.some(tr => tr.title.toLowerCase().includes(qLower) || (tr.explanation && tr.explanation.toLowerCase().includes(qLower))))
       );
     }
 
@@ -2230,18 +2326,26 @@ class AppController {
 
     let html = "";
     unitsList.forEach(u => {
-      const theoryCount = u.theoryNotes ? u.theoryNotes.length : 0;
       const tricksCount = u.shortTricks ? u.shortTricks.length : 0;
       const isGeneral = u.id === "general";
       const unitTag = isGeneral ? "📌 General Points" : `Unit ${u.unitNumber}`;
+
+      let matchedTopicsNotice = "";
+      if (q && q.length >= 2 && !u.name.toLowerCase().includes(q.toLowerCase()) && u.shortTricks) {
+        const matches = u.shortTricks.filter(t => t.title.toLowerCase().includes(q.toLowerCase()) || (t.explanation && t.explanation.toLowerCase().includes(q.toLowerCase())));
+        if (matches.length > 0) {
+          matchedTopicsNotice = `<div class="unit-match-badge">🔍 Contains: ${matches.slice(0, 2).map(m => highlightSearchText(m.title, q)).join(", ")}${matches.length > 2 ? ` (+${matches.length - 2} more)` : ''}</div>`;
+        }
+      }
 
       html += `
         <div class="unit-card">
           <div class="unit-card-header">
             <div class="unit-icon">${u.icon || (isGeneral ? "📌" : "📚")}</div>
             <div class="unit-info">
-              <span class="unit-number-tag">${unitTag}</span>
-              <h3 class="unit-title">${escapeHtml(u.name)}</h3>
+              <span class="unit-number-tag">${highlightSearchText(unitTag, q)}</span>
+              <h3 class="unit-title">${highlightSearchText(u.name, q)}</h3>
+              ${matchedTopicsNotice}
             </div>
           </div>
           <div class="unit-actions-row">
@@ -2295,7 +2399,11 @@ class AppController {
       );
     }
 
-    this.theoryCountBadge.textContent = `${allTheory.length} Topics`;
+    if (this.theoryCountBadge) {
+      this.theoryCountBadge.textContent = `${allTheory.length} Topics`;
+    }
+
+    if (!this.theoryCardsContainer) return;
 
     if (allTheory.length === 0) {
       this.theoryCardsContainer.innerHTML = `
@@ -2538,15 +2646,16 @@ class AppController {
       }
     });
 
-    if (state.searchQuery) {
-      const q = state.searchQuery.toLowerCase();
+    const q = (state.searchQuery || "").trim();
+    if (q) {
+      const qLower = q.toLowerCase();
       allTricks = allTricks.filter(t =>
-        t.title.toLowerCase().includes(q) ||
-        (t.lightbulb && t.lightbulb.toLowerCase().includes(q)) ||
-        t.mnemonic.toLowerCase().includes(q) ||
-        t.explanation.toLowerCase().includes(q) ||
-        (t.proTip && t.proTip.toLowerCase().includes(q)) ||
-        t.unitName.toLowerCase().includes(q)
+        t.title.toLowerCase().includes(qLower) ||
+        (t.lightbulb && t.lightbulb.toLowerCase().includes(qLower)) ||
+        t.mnemonic.toLowerCase().includes(qLower) ||
+        t.explanation.toLowerCase().includes(qLower) ||
+        (t.proTip && t.proTip.toLowerCase().includes(qLower)) ||
+        t.unitName.toLowerCase().includes(qLower)
       );
     }
 
@@ -2573,13 +2682,14 @@ class AppController {
     visibleTricks.forEach((tr, trIdx) => {
       const colorTheme = trickThemes[trIdx % trickThemes.length];
       const directBulbText = tr.lightbulb ? tr.lightbulb : `${tr.title} Key Note`;
+      const unitLabel = tr.unitId === "general" ? "📌 General Points" : `Unit ${tr.unitNumber}: ${tr.unitName}`;
 
       html += `
         <div class="trick-card theme-${colorTheme}" data-trick-id="${tr.id}">
           <div class="trick-header">
             <div>
-              <span class="trick-unit-tag">${tr.unitId === "general" ? "📌 General Points" : `Unit ${tr.unitNumber}: ${escapeHtml(tr.unitName)}`}</span>
-              <h3 class="trick-title">${escapeHtml(tr.title)}</h3>
+              <span class="trick-unit-tag">${highlightSearchText(unitLabel, q)}</span>
+              <h3 class="trick-title">${highlightSearchText(tr.title, q)}</h3>
             </div>
             <div class="card-action-btns">
               <button class="card-btn-action copy-trick-btn" data-text="${escapeAttr(tr.mnemonic + ' - ' + tr.explanation)}">
@@ -2597,18 +2707,18 @@ class AppController {
           <!-- Direct 💡 Box: Displays directly written content without forced mnemonic splitting! -->
           <div class="trick-direct-lightbulb-box">
             <span class="trick-direct-bulb-icon">💡</span>
-            <div class="trick-direct-bulb-text">${escapeHtml(directBulbText)}</div>
+            <div class="trick-direct-bulb-text">${highlightSearchText(directBulbText, q)}</div>
           </div>
 
           <!-- Mnemonic / Shortcut Rule: preserved completely -->
           <div class="trick-mnemonic-clean-box">
             <span class="trick-mnemonic-clean-title">Mnemonic / Shortcut Rule</span>
-            <div class="trick-mnemonic-clean-rule">${escapeHtml(tr.mnemonic)}</div>
+            <div class="trick-mnemonic-clean-rule">${highlightSearchText(tr.mnemonic, q)}</div>
           </div>
 
           <!-- Explanation: formatted content without default bullets -->
           <div class="trick-explanation-clean-body">
-            ${tr.explanation || ""}
+            ${highlightHtmlContent(tr.explanation || "", q)}
           </div>
 
           ${tr.proTip ? `
@@ -2616,7 +2726,7 @@ class AppController {
               <span class="trick-tip-icon">⚡</span>
               <div class="trick-tip-content">
                 <strong class="trick-tip-title">Exam Pro-Tip:</strong>
-                <span class="trick-tip-text">${escapeHtml(tr.proTip)}</span>
+                <span class="trick-tip-text">${highlightSearchText(tr.proTip, q)}</span>
               </div>
             </div>
           ` : ""}
@@ -2643,14 +2753,23 @@ class AppController {
     this.notepadSectionTitle.textContent = isP1 ? "My Points (Paper 1)" : "My Points (Paper 2 CS)";
 
     // Always sorted newest on top!
-    const notes = notesManager.getNotesByPaper(state.activePaper);
+    let notes = notesManager.getNotesByPaper(state.activePaper);
+    const q = (state.searchQuery || "").trim();
+    if (q && q.length >= 2) {
+      const qLower = q.toLowerCase();
+      notes = notes.filter(n =>
+        (n.title && n.title.toLowerCase().includes(qLower)) ||
+        (n.content && n.content.toLowerCase().includes(qLower)) ||
+        (n.unitName && n.unitName.toLowerCase().includes(qLower))
+      );
+    }
     this.notesCountBadge.textContent = `${notes.length} Points`;
 
     if (notes.length === 0) {
       this.userNotesGrid.innerHTML = `
         <div class="empty-state">
           <div class="empty-icon">📝</div>
-          <p>No study points added yet for this paper.</p>
+          <p>${q ? "No study points matching your search query." : "No study points added yet for this paper."}</p>
           <p style="font-size: 0.8rem; color: var(--text-muted);">Write important formulas or revision points above. Newly added points will always appear at the top!</p>
         </div>
       `;
@@ -2672,7 +2791,7 @@ class AppController {
       html += `
         <div class="saved-point-card" style="border-left: 3.5px solid ${n.color || 'var(--accent-current)'};">
           <div class="saved-point-header">
-            <span class="saved-point-unit">${escapeHtml(n.unitName)}</span>
+            <span class="saved-point-unit">${highlightSearchText(n.unitName, q)}</span>
             <div class="saved-point-actions">
               <button class="card-btn-action edit btn-edit-point" data-id="${n.id}" title="Edit Point">
                 ✏️ Edit
@@ -2682,8 +2801,8 @@ class AppController {
               </button>
             </div>
           </div>
-          <h4 class="saved-point-title">${escapeHtml(n.title)}</h4>
-          <div class="saved-point-body">${n.content || ""}</div>
+          <h4 class="saved-point-title">${highlightSearchText(n.title, q)}</h4>
+          <div class="saved-point-body">${highlightHtmlContent(n.content || "", q)}</div>
           <div class="saved-point-footer">${timeStr}</div>
         </div>
       `;
@@ -2766,6 +2885,10 @@ class AppController {
     const isP1 = state.activePaper === "paper1";
     const syllabus = isP1 ? paper1Syllabus : paper2Syllabus;
 
+    const q = (state.searchQuery || "").trim();
+    const hasSearch = q.length >= 2;
+    const qLower = q.toLowerCase();
+
     if (this.syllabusSectionTitle) {
       this.syllabusSectionTitle.textContent = isP1
         ? "Paper 1 Official UGC NET / SET Syllabus"
@@ -2779,11 +2902,15 @@ class AppController {
       let unitsHtml = "";
       syllabus.units.forEach(unit => {
         const uProg = syllabusManager.getUnitProgress(state.activePaper, unit);
-        const isOpen = this._openSyllabusUnits && this._openSyllabusUnits.has(unit.id);
+        const unitMatches = hasSearch && (
+          unit.name.toLowerCase().includes(qLower) ||
+          unit.subtopics.some(st => st.title.toLowerCase().includes(qLower) || (st.keyConcepts && st.keyConcepts.toLowerCase().includes(qLower)))
+        );
+        const isOpen = (this._openSyllabusUnits && this._openSyllabusUnits.has(unit.id)) || unitMatches;
         const isComplete = uProg.covered === uProg.total && uProg.total > 0;
 
         unitsHtml += `
-          <div class="syllabus-unit-accordion-card ${isOpen ? "is-open" : ""} ${isComplete ? "is-all-covered" : ""}" data-unit-id="${unit.id}">
+          <div class="syllabus-unit-accordion-card ${isOpen ? "is-open" : ""} ${isComplete ? "is-all-covered" : ""} ${unitMatches ? "search-matched-unit" : ""}" data-unit-id="${unit.id}">
             <div class="syllabus-unit-accordion-header" data-unit-id="${unit.id}">
               <div class="unit-acc-left">
                 <span class="unit-acc-icon">${unit.icon || "📚"}</span>
@@ -2791,8 +2918,9 @@ class AppController {
                   <div class="unit-acc-meta">
                     <span class="unit-acc-num">Unit ${unit.unitNumber}</span>
                     <span class="unit-progress-pill ${isComplete ? "completed" : ""}">${uProg.covered}/${uProg.total} (${uProg.percent}%)</span>
+                    ${unitMatches ? `<span class="unit-match-badge" style="margin: 0; padding: 0.05rem 0.4rem; font-size: 0.68rem;">🔍 Search Match</span>` : ""}
                   </div>
-                  <h3 class="unit-acc-name">${escapeHtml(unit.name)}</h3>
+                  <h3 class="unit-acc-name">${highlightSearchText(unit.name, q)}</h3>
                 </div>
               </div>
               <div class="unit-acc-right">
@@ -2807,8 +2935,12 @@ class AppController {
               <div class="syllabus-topics-list">
                 ${unit.subtopics.map(st => {
                   const covered = syllabusManager.isCovered(state.activePaper, st.id);
+                  const stMatches = hasSearch && (
+                    st.title.toLowerCase().includes(qLower) ||
+                    (st.keyConcepts && st.keyConcepts.toLowerCase().includes(qLower))
+                  );
                   return `
-                    <label class="syllabus-item-row ${covered ? "is-covered" : ""}" for="cb-${st.id}">
+                    <label class="syllabus-item-row ${covered ? "is-covered" : ""} ${stMatches ? "search-matched-row" : ""}" for="cb-${st.id}">
                       <input
                         type="checkbox"
                         id="cb-${st.id}"
@@ -2818,8 +2950,8 @@ class AppController {
                       />
                       <span class="syllabus-custom-checkbox"></span>
                       <div class="syllabus-item-content">
-                        <span class="syllabus-item-title">${escapeHtml(st.title)}</span>
-                        ${st.keyConcepts ? `<span class="syllabus-item-concepts">${escapeHtml(st.keyConcepts)}</span>` : ""}
+                        <span class="syllabus-item-title">${highlightSearchText(st.title, q)}</span>
+                        ${st.keyConcepts ? `<span class="syllabus-item-concepts">${highlightSearchText(st.keyConcepts, q)}</span>` : ""}
                       </div>
                     </label>
                   `;
@@ -2861,8 +2993,13 @@ class AppController {
             <div class="must-cover-list">
               ${syllabus.mustCover.map(mc => {
                 const covered = syllabusManager.isCovered(state.activePaper, mc.id);
+                const mcMatches = hasSearch && (
+                  mc.title.toLowerCase().includes(qLower) ||
+                  (mc.whyImportant && mc.whyImportant.toLowerCase().includes(qLower)) ||
+                  (mc.concepts && mc.concepts.toLowerCase().includes(qLower))
+                );
                 return `
-                  <label class="syllabus-item-row must-cover-item ${covered ? "is-covered" : ""}" for="cb-${mc.id}">
+                  <label class="syllabus-item-row must-cover-item ${covered ? "is-covered" : ""} ${mcMatches ? "search-matched-row" : ""}" for="cb-${mc.id}">
                     <input
                       type="checkbox"
                       id="cb-${mc.id}"
@@ -2873,10 +3010,10 @@ class AppController {
                     <span class="syllabus-custom-checkbox"></span>
                     <div class="syllabus-item-content">
                       <div class="mc-title-row">
-                        <span class="syllabus-item-title">${escapeHtml(mc.title)}</span>
-                        <span class="mc-pill-why">⚡ ${escapeHtml(mc.whyImportant)}</span>
+                        <span class="syllabus-item-title">${highlightSearchText(mc.title, q)}</span>
+                        <span class="mc-pill-why">⚡ ${highlightSearchText(mc.whyImportant, q)}</span>
                       </div>
-                      ${mc.concepts ? `<span class="syllabus-item-concepts">${escapeHtml(mc.concepts)}</span>` : ""}
+                      ${mc.concepts ? `<span class="syllabus-item-concepts">${highlightSearchText(mc.concepts, q)}</span>` : ""}
                     </div>
                   </label>
                 `;
@@ -2950,8 +3087,8 @@ class AppController {
             <span class="bin-deleted-time" title="${escapeHtml(new Date(it.deletedAt).toLocaleString())}">🕒 ${dateStr}</span>
           </div>
 
-          <h4 class="bin-card-title">${escapeHtml(it.title)}</h4>
-          <div class="bin-card-preview">${escapeHtml(preview)}</div>
+          <h4 class="bin-card-title">${highlightSearchText(it.title, searchQuery)}</h4>
+          <div class="bin-card-preview">${highlightSearchText(preview, searchQuery)}</div>
 
           <div class="bin-card-actions">
             <button class="btn-bin-delete" data-bin-id="${it.id}" type="button" title="Permanently Delete">
@@ -3084,20 +3221,21 @@ class AppController {
 
       const matchedUnit = paperData.units.find(u => u.id === q.unitId);
       const unitLabel = matchedUnit ? matchedUnit.name : q.unitName;
+      const qSearch = (state.searchQuery || "").trim();
 
       html += `
         <div class="question-card" id="q_card_${q.id}" style="${isAnswered ? (isCorrect ? 'border-left-color: #10b981;' : 'border-left-color: #ef4444;') : ''}">
           <div class="question-card-header">
             <div class="question-tags">
-              <span class="question-unit-tag">Unit ${q.unitNumber}: ${escapeHtml(unitLabel)}</span>
-              <span class="question-exam-tag">${escapeHtml(q.examSource)}</span>
+              <span class="question-unit-tag">${highlightSearchText(`Unit ${q.unitNumber}: ${unitLabel}`, qSearch)}</span>
+              <span class="question-exam-tag">${highlightSearchText(q.examSource, qSearch)}</span>
             </div>
             ${isAnswered ? `<button class="btn-reset-question" data-qid="${q.id}" title="Re-attempt this question">↺ Re-try</button>` : ''}
           </div>
 
           <div class="question-statement">
             <span style="color: var(--accent-current); margin-right: 0.3rem;">Q${idx + 1}.</span>
-            ${escapeHtml(q.question)}
+            ${highlightSearchText(q.question, qSearch)}
           </div>
 
           <div class="question-options-list">
@@ -3129,7 +3267,7 @@ class AppController {
           <label class="${rowClass}" data-qid="${q.id}" data-opt="${opt.id}">
             <input type="radio" name="radio_${q.id}" value="${opt.id}" ${isSelected ? "checked" : ""} ${isAnswered ? "disabled" : ""}>
             <span class="option-letter-badge">${opt.id}</span>
-            <span class="option-text">${escapeHtml(opt.text)}</span>
+            <span class="option-text">${highlightSearchText(opt.text, qSearch)}</span>
             ${statusBadge}
           </label>
         `;
@@ -3157,7 +3295,7 @@ class AppController {
           html += `
             <div class="breakdown-item ${isRight ? 'is-correct-exp' : ''}">
               <span class="breakdown-badge">Option ${optKey}</span>
-              <span class="breakdown-text">${escapeHtml(expText)}</span>
+              <span class="breakdown-text">${highlightSearchText(expText, qSearch)}</span>
             </div>
           `;
         });
@@ -3166,7 +3304,7 @@ class AppController {
             </div>
             ${q.summaryExplanation ? `
               <div class="breakdown-summary">
-                <strong>📌 Key Takeaway:</strong> ${escapeHtml(q.summaryExplanation)}
+                <strong>📌 Key Takeaway:</strong> ${highlightSearchText(q.summaryExplanation, qSearch)}
               </div>
             ` : ''}
 
@@ -3212,9 +3350,17 @@ class AppController {
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  window.appController = new AppController();
-});
+function startApp() {
+  if (!window.appController) {
+    window.appController = new AppController();
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", startApp);
+} else {
+  startApp();
+}
 
 // Remove any injected "Powered by Netlify" badges without recurring layout thrashing
 function purgeNetlifyBadge() {

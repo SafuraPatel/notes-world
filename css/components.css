@@ -4357,4 +4357,55 @@ u {
   color: #ffffff !important;
 }
 
+/* ==========================================================================
+   16. SEARCH HIGHLIGHTING & RECOGNITION (2-3+ LETTER MATCHES)
+   ========================================================================== */
+mark.search-highlight {
+  background: linear-gradient(135deg, #fef08a 0%, #fde047 100%);
+  color: #1e293b;
+  font-weight: 800;
+  padding: 0.1em 0.32em;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(202, 138, 4, 0.35);
+  display: inline;
+  text-decoration: none;
+}
+
+[data-theme="dark"] mark.search-highlight {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: #0f172a;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.45);
+}
+
+.search-matched-row {
+  border-left: 3.5px solid #f59e0b !important;
+  background: rgba(245, 158, 11, 0.08) !important;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.search-matched-unit {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.25) !important;
+}
+
+.unit-match-badge {
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.18rem 0.55rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+[data-theme="dark"] .unit-match-badge {
+  background: rgba(245, 158, 11, 0.22);
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.45);
+}
+
+
 
