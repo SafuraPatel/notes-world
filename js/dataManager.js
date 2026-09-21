@@ -265,15 +265,21 @@ export class DataManager {
       }
     });
 
-    // Merge any user-added custom tricks discovered across historical localStorage keys
+    // Merge any user-added custom tricks and preserve user modifications from historical localStorage keys
     allKnownTricks.forEach(({ unitId, trick }) => {
       let targetUnit = baseData.units.find(u => u.id === unitId);
       if (!targetUnit) targetUnit = baseData.units.find(u => u.id === "general") || baseData.units[0];
       if (!targetUnit.shortTricks) targetUnit.shortTricks = [];
       const trTitle = (trick.title || "").trim().toLowerCase();
-      const alreadyInUnit = targetUnit.shortTricks.some(t => (t.title || "").trim().toLowerCase() === trTitle || (trick.id && t.id === trick.id));
-      if (!alreadyInUnit) {
+      const existing = targetUnit.shortTricks.find(t => (t.title || "").trim().toLowerCase() === trTitle || (trick.id && t.id === trick.id));
+      if (!existing) {
         targetUnit.shortTricks.unshift(trick);
+      } else {
+        // Retain user's custom edits over factory defaults!
+        if (trick.lightbulb && trick.lightbulb !== existing.lightbulb) existing.lightbulb = trick.lightbulb;
+        if (trick.mnemonic && trick.mnemonic !== existing.mnemonic) existing.mnemonic = trick.mnemonic;
+        if (trick.explanation && trick.explanation !== existing.explanation) existing.explanation = trick.explanation;
+        if (trick.proTip && trick.proTip !== existing.proTip) existing.proTip = trick.proTip;
       }
     });
 

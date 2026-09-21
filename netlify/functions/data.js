@@ -129,10 +129,24 @@ exports.handler = async (event, context) => {
       const body = JSON.parse(event.body || "{}");
 
       if (body.type === "notes") {
+        let notesToSave = Array.isArray(body.notes) ? body.notes : [];
         if (blobStore) {
-          await blobStore.setJSON("shared_notes", body.notes);
+          try {
+            const existingNotes = await blobStore.get("shared_notes", { type: "json" });
+            if (Array.isArray(existingNotes)) {
+              const currentIds = new Set(notesToSave.map(n => n.id));
+              const currentTitles = new Set(notesToSave.map(n => (n.title || "").trim().toLowerCase()));
+              existingNotes.forEach(en => {
+                const tClean = (en.title || "").trim().toLowerCase();
+                if (!currentIds.has(en.id) && !currentTitles.has(tClean)) {
+                  notesToSave.push(en);
+                }
+              });
+            }
+          } catch (e) {}
+          await blobStore.setJSON("shared_notes", notesToSave);
         } else {
-          memoryStore.set("shared_notes", body.notes);
+          memoryStore.set("shared_notes", notesToSave);
         }
         return {
           statusCode: 200,
@@ -169,10 +183,34 @@ exports.handler = async (event, context) => {
 
       if (body.paperId && body.data) {
         const key = `paper_data_${body.paperId}`;
+        let finalData = body.data;
+
         if (blobStore) {
-          await blobStore.setJSON(key, body.data);
+          try {
+            const existing = await blobStore.get(key, { type: "json" });
+            if (existing && existing.units && Array.isArray(existing.units) && finalData.units) {
+              // Lossless additive merge: ensure all previous topics are retained
+              existing.units.forEach(exU => {
+                let targetU = finalData.units.find(u => u.id === exU.id);
+                if (targetU && exU.shortTricks && Array.isArray(exU.shortTricks)) {
+                  if (!targetU.shortTricks) targetU.shortTricks = [];
+                  const existingIds = new Set(targetU.shortTricks.map(t => t.id));
+                  const existingTitles = new Set(targetU.shortTricks.map(t => (t.title || "").trim().toLowerCase()));
+                  exU.shortTricks.forEach(et => {
+                    const cleanT = (et.title || "").trim().toLowerCase();
+                    if (!existingIds.has(et.id) && !existingTitles.has(cleanT)) {
+                      targetU.shortTricks.push(et);
+                    }
+                  });
+                }
+              });
+            }
+          } catch (e) {
+            console.warn("Cloud merge warning:", e);
+          }
+          await blobStore.setJSON(key, finalData);
         } else {
-          memoryStore.set(key, body.data);
+          memoryStore.set(key, finalData);
         }
         return {
           statusCode: 200,

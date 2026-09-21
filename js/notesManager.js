@@ -20,23 +20,37 @@ export class NotesManager {
   }
 
   loadNotes() {
-    try {
-      const data = localStorage.getItem(STORAGE_KEY);
-      if (data) {
-        const parsed = JSON.parse(data);
-        if (Array.isArray(parsed)) {
-          // Deduplicate notes by paper and title
-          const seen = new Set();
-          return parsed.filter(n => {
-            const key = `${n.paper || "paper1"}_${(n.title || "").trim().toLowerCase()}`;
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-          });
+    const candidateKeys = [
+      STORAGE_KEY,
+      `${STORAGE_KEY}_backup`,
+      "notes_world_study_points_v1",
+      "notes_world_study_points",
+      "notes_world_notepad_v1"
+    ];
+
+    const allNotes = [];
+    const seen = new Set();
+
+    for (const key of candidateKeys) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(n => {
+              const k = `${n.paper || "paper1"}_${(n.title || "").trim().toLowerCase()}`;
+              if (!seen.has(k)) {
+                seen.add(k);
+                allNotes.push(n);
+              }
+            });
+          }
         }
-      }
-    } catch (e) {
-      console.error("Failed to load points from localStorage:", e);
+      } catch (e) {}
+    }
+
+    if (allNotes.length > 0) {
+      return allNotes;
     }
     // Starter points for Paper 1 and Paper 2
     return [
