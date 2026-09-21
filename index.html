@@ -74,6 +74,10 @@
           <span class="tab-icon">📋</span>
           <span class="tab-label">Syllabus <span id="tabSyllabusBadge" class="tab-badge-text">(0%)</span></span>
         </button>
+        <button class="tab-btn" data-section="theory" type="button" role="tab" aria-label="Theory" title="In-Depth Theory Notes">
+          <span class="tab-icon">📖</span>
+          <span class="tab-label">Theory <span id="tabTheoryCountBadge">(0)</span></span>
+        </button>
         <button class="tab-btn" data-section="tricks" type="button" role="tab" aria-label="Topics" title="Topics">
           <span class="tab-icon">💡</span>
           <span class="tab-label">Topics</span>
@@ -148,6 +152,29 @@
 
         <!-- Must Cover High-Yield Out-of-Syllabus Section -->
         <div id="syllabusMustCoverContainer" class="syllabus-must-cover-wrapper">
+          <!-- Dynamically populated via JS -->
+        </div>
+      </section>
+
+      <!-- 2b. THEORY SECTION (Pure In-Depth Notes & Diagrams) -->
+      <section id="theorySection" class="content-section" style="display: none;">
+        <div class="section-header">
+          <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+            <button class="btn-back-to-home" type="button" title="Back to Units (Home)">
+              ← Units
+            </button>
+            <h2 class="section-title">
+              <span>📖</span>
+              <span id="theorySectionTitle">Theory</span>
+            </h2>
+            <span id="theoryCountBadge" class="section-badge">0 Topics</span>
+          </div>
+          <button id="btnHeaderAddTheory" class="btn-header-add" type="button" title="Add Theory Topic">
+            <span class="btn-add-icon">+</span> Add
+          </button>
+        </div>
+
+        <div id="theoryCardsContainer" class="theory-cards-grid">
           <!-- Dynamically populated via JS -->
         </div>
       </section>

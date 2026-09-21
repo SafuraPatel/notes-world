@@ -234,6 +234,8 @@ class AppController {
     this.userNotesGrid = document.getElementById("userNotesGrid");
 
     // Badges & Titles
+    this.tabTheoryCountBadge = document.getElementById("tabTheoryCountBadge");
+    this.theorySectionTitle = document.getElementById("theorySectionTitle");
     this.theoryCountBadge = document.getElementById("theoryCountBadge");
     this.tricksCountBadge = document.getElementById("tricksCountBadge");
     this.questionsCountBadge = document.getElementById("questionsCountBadge");
@@ -607,6 +609,12 @@ class AppController {
           const uId = syllabusBtn.getAttribute("data-unit-id");
           if (this._openSyllabusUnits) this._openSyllabusUnits.add(uId);
           this.navigateToSection("syllabus", uId, true);
+          return;
+        }
+        const theoryBtn = e.target.closest(".btn-go-theory");
+        if (theoryBtn) {
+          this.theoryDisplayLimit = 25;
+          this.navigateToSection("theory", theoryBtn.getAttribute("data-unit-id"), true);
           return;
         }
         const tricksBtn = e.target.closest(".btn-go-tricks");
@@ -2182,8 +2190,8 @@ class AppController {
       }
     });
 
-    // Filter Bar visibility (Units, Syllabus, Topics, Questions)
-    const showFilterBar = state.activeSection === "units" || state.activeSection === "syllabus" || state.activeSection === "tricks" || state.activeSection === "questions";
+    // Filter Bar visibility (Units, Syllabus, Theory, Topics, Questions)
+    const showFilterBar = state.activeSection === "units" || state.activeSection === "syllabus" || state.activeSection === "theory" || state.activeSection === "tricks" || state.activeSection === "questions";
     if (this.filterBar) {
       this.filterBar.style.display = showFilterBar ? "flex" : "none";
     }
@@ -2239,6 +2247,7 @@ class AppController {
     }
 
     this.updateSyllabusBadge();
+    this.updateTheoryBadge();
     this.updateQuestionsBadge();
     this.updateNotesBadge();
     this.updateBinBadge();
@@ -2326,6 +2335,7 @@ class AppController {
 
     let html = "";
     unitsList.forEach(u => {
+      const theoryCount = u.theoryNotes ? u.theoryNotes.length : 0;
       const tricksCount = u.shortTricks ? u.shortTricks.length : 0;
       const isGeneral = u.id === "general";
       const unitTag = isGeneral ? "📌 General Points" : `Unit ${u.unitNumber}`;
@@ -2353,6 +2363,9 @@ class AppController {
             <button class="unit-action-btn btn-go-syllabus" data-unit-id="${u.id}" title="View official syllabus and track covered topics">
               📋 Syllabus
             </button>` : ''}
+            <button class="unit-action-btn btn-go-theory" data-unit-id="${u.id}" title="View in-depth theory notes and diagrams">
+              📖 Theory (${theoryCount})
+            </button>
             <button class="unit-action-btn btn-go-tricks" data-unit-id="${u.id}" title="View topic notes and tricks">
               💡 Topics (${tricksCount})
             </button>
@@ -2370,8 +2383,12 @@ class AppController {
 
   renderTheorySection(paperData) {
     const state = store.getState();
-    let unitsList = paperData.units;
+    const isP1 = state.activePaper === "paper1";
+    if (this.theorySectionTitle) {
+      this.theorySectionTitle.textContent = isP1 ? "Theory (Paper 1)" : "Theory (Paper 2 CS)";
+    }
 
+    let unitsList = paperData.units;
     if (state.selectedUnitId !== "all") {
       unitsList = unitsList.filter(u => u.id === state.selectedUnitId);
     }
@@ -2390,12 +2407,14 @@ class AppController {
       }
     });
 
-    if (state.searchQuery) {
-      const q = state.searchQuery;
+    const q = (state.searchQuery || "").trim();
+    if (q) {
+      const qLower = q.toLowerCase();
       allTheory = allTheory.filter(t =>
-        t.title.toLowerCase().includes(q) ||
-        t.unitName.toLowerCase().includes(q) ||
-        t.points.some(p => p.toLowerCase().includes(q))
+        t.title.toLowerCase().includes(qLower) ||
+        (t.unitName && t.unitName.toLowerCase().includes(qLower)) ||
+        (t.content && t.content.toLowerCase().includes(qLower)) ||
+        (t.points && t.points.some(p => p.toLowerCase().includes(qLower)))
       );
     }
 
@@ -2409,7 +2428,7 @@ class AppController {
       this.theoryCardsContainer.innerHTML = `
         <div class="empty-state">
           <div class="empty-icon">📖</div>
-          <p>No theory notes matching the current filter.</p>
+          <p>${q ? "No theory notes matching your search query." : "No theory notes matching the current filter."}</p>
         </div>
       `;
       return;
@@ -2425,21 +2444,23 @@ class AppController {
     visibleTheory.forEach(item => {
       let contentHtml = "";
       if (item.content) {
-        contentHtml = `<div class="theory-content-body">${item.content}</div>`;
+        contentHtml = `<div class="theory-content-body">${highlightHtmlContent(item.content, q)}</div>`;
       } else if (item.points && item.points.length > 0) {
         contentHtml = `
           <div class="theory-content-body">
             ${item.points.map(p => `
-              <div class="theory-clean-point">${formatBulletText(p)}</div>
+              <div class="theory-clean-point">${highlightSearchText(formatBulletText(p), q)}</div>
             `).join("")}
           </div>
         `;
       }
 
+      const unitLabel = item.unitId === "general" ? "📌 General Points" : `Unit ${item.unitNumber}: ${item.unitName}`;
+
       html += `
         <div class="theory-card" data-topic-id="${item.id}">
           <div class="theory-card-top">
-            <span class="theory-unit-label">${item.unitId === "general" ? "📌 General Points" : `Unit ${item.unitNumber}: ${escapeHtml(item.unitName)}`}</span>
+            <span class="theory-unit-label">${highlightSearchText(unitLabel, q)}</span>
             <div class="card-action-btns">
               <button class="card-btn-action btn-toggle-mindmap" data-topic-id="${item.id}" title="Toggle Exam Mind Map & Diagram">
                 🗺️ Mind Map
@@ -2453,7 +2474,7 @@ class AppController {
             </div>
           </div>
 
-          <h3 class="theory-topic-title">${escapeHtml(item.title)}</h3>
+          <h3 class="theory-topic-title">${highlightSearchText(item.title, q)}</h3>
 
           ${contentHtml}
 
@@ -2817,6 +2838,18 @@ class AppController {
     if (this.notesCountBadge) {
       this.notesCountBadge.textContent = `${count} Points`;
     }
+  }
+
+  updateTheoryBadge() {
+    if (!this.tabTheoryCountBadge) return;
+    const paperData = store.getCurrentPaperData();
+    let count = 0;
+    if (paperData && paperData.units) {
+      paperData.units.forEach(u => {
+        if (u.theoryNotes) count += u.theoryNotes.length;
+      });
+    }
+    this.tabTheoryCountBadge.textContent = `(${count})`;
   }
 
   // --- SYLLABUS CONTROLLER & CHECKLIST ---
