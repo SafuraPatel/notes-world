@@ -21,6 +21,67 @@ export class NotesManager {
     }, 120);
   }
 
+  loadNotes() {
+    const candidateKeys = [
+      STORAGE_KEY,
+      `${STORAGE_KEY}_backup`,
+      "notes_world_study_points_v1",
+      "notes_world_study_points",
+      "notes_world_notepad_v1"
+    ];
+
+    const allNotes = [];
+    const seen = new Set();
+
+    for (const key of candidateKeys) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(n => {
+              if (binManager.isDeleted(n.paper, n.id, n.title)) return;
+              const k = `${n.paper || "paper1"}_${(n.title || "").trim().toLowerCase()}`;
+              if (!seen.has(k)) {
+                seen.add(k);
+                allNotes.push(n);
+              }
+            });
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (allNotes.length > 0) {
+      return allNotes;
+    }
+    // Starter points for Paper 1 and Paper 2
+    return [
+      {
+        id: "starter-p1-note",
+        paper: "paper1",
+        unitId: "p1-u6",
+        unitName: "Logical Reasoning",
+        title: "Square of Opposition Golden Rules",
+        content: "• Contradictories (A-O, E-I): Always opposite truth values.\n• Contraries (A-E): Both can be false, cannot both be true.\n• Sub-contraries (I-O): Both can be true, cannot both be false.\n• Truth flows DOWN (A to I, E to O).\n• Falsehood flows UP (I to A, O to E).",
+        color: "#8b5cf6",
+        createdAt: new Date(Date.now() - 1000).toISOString(),
+        updatedAt: new Date(Date.now() - 1000).toISOString()
+      },
+      {
+        id: "starter-p2-note",
+        paper: "paper2",
+        unitId: "p2-u4",
+        unitName: "DBMS",
+        title: "Normal Forms Quick Decider",
+        content: "• BCNF: Every determinant X MUST be a Super Key.\n• 3NF: For every X -> Y, X is Super Key OR Y is Prime Attribute.\n• 2NF: No partial dependency on proper subset of candidate key.\n• Relations with only 2 attributes are ALWAYS in BCNF.",
+        color: "#10b981",
+        createdAt: new Date(Date.now() - 2000).toISOString(),
+        updatedAt: new Date(Date.now() - 2000).toISOString()
+      }
+    ];
+  }
+
   purgeDeletedNotes() {
     const initLen = this.notes.length;
     this.notes = this.notes.filter(n => !binManager.isDeleted(n.paper, n.id, n.title));
