@@ -49,6 +49,12 @@ class NotesWorldHandler(SimpleHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
 
+            if "type" in query and "tombstones" in query["type"]:
+                tombstones = db.get("deleted_tombstones", [])
+                response = {"success": True, "tombstones": tombstones}
+                self.wfile.write(json.dumps(response).encode("utf-8"))
+                return
+
             if "type" in query and "notes" in query["type"]:
                 notes = db.get("shared_notes", None)
                 response = {"success": True, "notes": notes}
@@ -74,7 +80,7 @@ class NotesWorldHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps(response).encode("utf-8"))
                 return
 
-            response = {"success": False, "message": "Specify ?paper=paper1, ?type=notes, ?type=bin, or ?type=syllabus"}
+            response = {"success": False, "message": "Specify ?paper=paper1, ?type=notes, ?type=bin, ?type=tombstones, or ?type=syllabus"}
             self.wfile.write(json.dumps(response).encode("utf-8"))
             return
 
@@ -97,14 +103,48 @@ class NotesWorldHandler(SimpleHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
 
+            # Helper for tombstones
+            tombstones = set(str(t).lower() for t in db.get("deleted_tombstones", []))
+            for b in db.get("recycle_bin", []):
+                if b.get("originalId"): tombstones.add(str(b["originalId"]).lower())
+                if b.get("id"): tombstones.add(str(b["id"]).lower())
+                if b.get("title"):
+                    t_clean = str(b["title"]).strip().lower()
+                    tombstones.add(t_clean)
+                    p = b.get("paper", "paper1")
+                    tombstones.add(f"{p}_{t_clean}")
+
+            if body.get("type") == "tombstones":
+                incoming = body.get("tombstones", [])
+                merged = list(set(db.get("deleted_tombstones", []) + incoming))
+                db["deleted_tombstones"] = merged
+                save_db(db)
+                self.wfile.write(json.dumps({"success": True, "message": "Tombstones saved to local DB"}).encode("utf-8"))
+                return
+
             if body.get("type") == "notes":
-                db["shared_notes"] = body.get("notes")
+                notes = body.get("notes", [])
+                if isinstance(notes, list):
+                    notes = [n for n in notes if n and str(n.get("id", "")).lower() not in tombstones and str(n.get("title", "")).strip().lower() not in tombstones]
+                db["shared_notes"] = notes
                 save_db(db)
                 self.wfile.write(json.dumps({"success": True, "message": "Notes saved to local DB"}).encode("utf-8"))
                 return
 
             if body.get("type") == "bin":
-                db["recycle_bin"] = body.get("bin", [])
+                bin_items = body.get("bin", [])
+                db["recycle_bin"] = bin_items
+                # Keep tombstones in sync
+                existing_tombs = set(db.get("deleted_tombstones", []))
+                for it in bin_items:
+                    if it.get("originalId"): existing_tombs.add(str(it["originalId"]).lower())
+                    if it.get("id"): existing_tombs.add(str(it["id"]).lower())
+                    if it.get("title"):
+                        clean_t = str(it["title"]).strip().lower()
+                        existing_tombs.add(clean_t)
+                        p = it.get("paper", "paper1")
+                        existing_tombs.add(f"{p}_{clean_t}")
+                db["deleted_tombstones"] = list(existing_tombs)
                 save_db(db)
                 self.wfile.write(json.dumps({"success": True, "message": "Recycle bin saved to local DB"}).encode("utf-8"))
                 return
@@ -116,9 +156,17 @@ class NotesWorldHandler(SimpleHTTPRequestHandler):
                 return
 
             if body.get("paperId") and "data" in body:
-                db[f"paper_data_{body['paperId']}"] = body["data"]
+                paper_id = body["paperId"]
+                data = body["data"]
+                if data and isinstance(data.get("units"), list) and tombstones:
+                    for u in data["units"]:
+                        if "shortTricks" in u and isinstance(u["shortTricks"], list):
+                            u["shortTricks"] = [t for t in u["shortTricks"] if t and str(t.get("id", "")).lower() not in tombstones and str(t.get("title", "")).strip().lower() not in tombstones and f"{paper_id}_{str(t.get('title', '')).strip().lower()}" not in tombstones]
+                        if "theoryNotes" in u and isinstance(u["theoryNotes"], list):
+                            u["theoryNotes"] = [t for t in u["theoryNotes"] if t and str(t.get("id", "")).lower() not in tombstones and str(t.get("title", "")).strip().lower() not in tombstones and f"{paper_id}_{str(t.get('title', '')).strip().lower()}" not in tombstones]
+                db[f"paper_data_{paper_id}"] = data
                 save_db(db)
-                self.wfile.write(json.dumps({"success": True, "message": f"{body['paperId']} saved to local DB"}).encode("utf-8"))
+                self.wfile.write(json.dumps({"success": True, "message": f"{paper_id} saved to local DB"}).encode("utf-8"))
                 return
 
             self.wfile.write(json.dumps({"success": False, "message": "Invalid payload"}).encode("utf-8"))

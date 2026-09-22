@@ -158,10 +158,21 @@ class AppController {
 
     // Reactive store updates
     store.subscribe(() => this.render());
+    // Reactive dataManager updates (triggers render immediately on cloud sync merge)
+    dataManager.subscribe(() => {
+      this.render();
+      this.updateStickySummary();
+      if (this.syncChannel) {
+        try { this.syncChannel.postMessage("reload_data"); } catch (_) {}
+      }
+    });
     // Reactive notes updates
     notesManager.subscribe(() => {
       this.renderNotepadSection();
       this.updateNotesBadge();
+      if (this.syncChannel) {
+        try { this.syncChannel.postMessage("reload_data"); } catch (_) {}
+      }
     });
     // Reactive questions updates
     questionsManager.subscribe(() => {
@@ -173,6 +184,31 @@ class AppController {
       this.updateSyllabusBadge();
       if (store.getState().activeSection === "syllabus") {
         this.renderSyllabusSection();
+      }
+    });
+
+    // Cross-tab real-time live synchronization (sub-10ms)
+    if (typeof BroadcastChannel !== "undefined") {
+      try {
+        this.syncChannel = new BroadcastChannel("notes_world_cross_tab_sync");
+        this.syncChannel.onmessage = (msg) => {
+          if (msg.data === "reload_data") {
+            this.render();
+            this.renderNotepadSection();
+            this.updateNotesBadge();
+            this.updateStickySummary();
+          }
+        };
+      } catch (_) {}
+    }
+
+    // Auto-sync on window focus / tab visibility
+    window.addEventListener("focus", () => {
+      this.triggerManualSync(false, false);
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        this.triggerManualSync(false, false);
       }
     });
   }
@@ -1351,15 +1387,16 @@ class AppController {
     });
   }
 
-  async triggerManualSync() {
+  async triggerManualSync(force = true, showToasts = true) {
     if (this.cloudSyncBtn) this.cloudSyncBtn.classList.add("syncing");
     if (this.stickyCloudSyncBtn) this.stickyCloudSyncBtn.classList.add("syncing");
     if (this.syncStatusText) this.syncStatusText.textContent = "Syncing...";
     try {
-      const [notesUpdated, dataUpdated, binUpdated] = await Promise.all([
-        notesManager.syncFromCloud(),
-        dataManager.syncFromCloud(),
-        binManager.syncFromCloud()
+      const [binUpdated, dataUpdated, notesUpdated] = await Promise.all([
+        binManager.syncFromCloud(force),
+        dataManager.syncFromCloud(force),
+        notesManager.syncFromCloud(force),
+        syllabusManager.syncFromCloud()
       ]);
       if (this.cloudSyncBtn) this.cloudSyncBtn.classList.remove("syncing");
       if (this.stickyCloudSyncBtn) this.stickyCloudSyncBtn.classList.remove("syncing");
@@ -1369,7 +1406,9 @@ class AppController {
           if (this.syncStatusText) this.syncStatusText.textContent = "Sync";
         }, 2200);
       }
-      showToast(notesUpdated || dataUpdated ? "Latest updates synced from cloud!" : "All notes and topics up to date!", "success");
+      if (showToasts) {
+        showToast(notesUpdated || dataUpdated || binUpdated ? "Latest updates synced live from cloud!" : "All notes and topics up to date!", "success");
+      }
     } catch (e) {
       if (this.cloudSyncBtn) this.cloudSyncBtn.classList.remove("syncing");
       if (this.stickyCloudSyncBtn) this.stickyCloudSyncBtn.classList.remove("syncing");
@@ -1379,7 +1418,9 @@ class AppController {
           if (this.syncStatusText) this.syncStatusText.textContent = "Sync";
         }, 2200);
       }
-      showToast("Cloud sync failed. Working in offline mode.", "info");
+      if (showToasts) {
+        showToast("Cloud sync failed. Working in offline mode.", "info");
+      }
     }
   }
 

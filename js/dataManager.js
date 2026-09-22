@@ -128,20 +128,62 @@ export class DataManager {
     };
     this.listeners = [];
 
-    // Deferred non-blocking sync: Allows instant UI render from localStorage
+    // Fast non-blocking startup sync
     setTimeout(() => {
-      this.syncFromCloud();
+      this.syncFromCloud(true);
       this.setupBackgroundSync();
-    }, 2500);
+    }, 100);
+  }
+
+  purgeDeletedItems() {
+    let anyChanged = false;
+    for (const paperId of ["paper1", "paper2"]) {
+      const paper = this.data[paperId];
+      if (!paper || !paper.units) continue;
+      let paperChanged = false;
+      paper.units.forEach(u => {
+        if (u.shortTricks && Array.isArray(u.shortTricks)) {
+          const initLen = u.shortTricks.length;
+          u.shortTricks = u.shortTricks.filter(t => !binManager.isDeleted(paperId, t.id, t.title));
+          if (u.shortTricks.length !== initLen) paperChanged = true;
+        }
+        if (u.theoryNotes && Array.isArray(u.theoryNotes)) {
+          const initLen = u.theoryNotes.length;
+          u.theoryNotes = u.theoryNotes.filter(t => !binManager.isDeleted(paperId, t.id, t.title));
+          if (u.theoryNotes.length !== initLen) paperChanged = true;
+        }
+      });
+      if (paperChanged) {
+        const storageKey = paperId === "paper1" ? STORAGE_KEY_P1 : STORAGE_KEY_P2;
+        localStorage.setItem(storageKey, JSON.stringify(paper));
+        anyChanged = true;
+      }
+    }
+    if (anyChanged) {
+      this.notify();
+    }
+    return anyChanged;
   }
 
   setupBackgroundSync() {
-    // Non-intrusive background polling every 5 minutes
+    // Fast active polling (every 15s) when window/tab is visible
     setInterval(() => {
       if (document.visibilityState === "visible" && navigator.onLine) {
-        this.syncFromCloud();
+        this.syncFromCloud(false);
       }
-    }, 300000);
+    }, 15000);
+
+    // Immediate sync on tab visibility or window focus
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && navigator.onLine) {
+        this.syncFromCloud(true);
+      }
+    });
+    window.addEventListener("focus", () => {
+      if (navigator.onLine) {
+        this.syncFromCloud(true);
+      }
+    });
   }
 
   deduplicatePaperUnits(paperObj) {
@@ -332,7 +374,6 @@ export class DataManager {
       }
     });
 
-    // Never erase local topics or tricks during cloud sync!
     cloudPaper.units.forEach(cloudUnit => {
       let localUnit = localPaper.units.find(u => u.id === cloudUnit.id);
       if (!localUnit) {
@@ -340,33 +381,74 @@ export class DataManager {
         return;
       }
 
-      // Merge shortTricks (Topics): preserve all local items and append new cloud items (unless deleted)
+      // Merge shortTricks (Topics):
       if (cloudUnit.shortTricks && Array.isArray(cloudUnit.shortTricks)) {
         if (!localUnit.shortTricks) localUnit.shortTricks = [];
-        const localTrickIds = new Set(localUnit.shortTricks.map(t => t.id));
-        const localTrickTitles = new Set(localUnit.shortTricks.map(t => (t.title || "").trim().toLowerCase()));
 
+        // 1. Ingest cloud tricks & sync edits
         cloudUnit.shortTricks.forEach(ct => {
+          if (!ct || binManager.isDeleted(paperId, ct.id, ct.title)) return;
           const tClean = (ct.title || "").trim().toLowerCase();
-          if (binManager.isDeleted(paperId, ct.id, ct.title)) return;
-          if (!localTrickIds.has(ct.id) && !localTrickTitles.has(tClean)) {
+          const existing = localUnit.shortTricks.find(lt => (ct.id && lt.id === ct.id) || (lt.title && lt.title.trim().toLowerCase() === tClean));
+          if (!existing) {
             localUnit.shortTricks.push(ct);
+          } else {
+            // Bi-directional edit sync: update local fields if cloud version has edits
+            const cloudTime = new Date(ct.updatedAt || ct.createdAt || 0).getTime();
+            const localTime = new Date(existing.updatedAt || existing.createdAt || 0).getTime();
+            if (cloudTime >= localTime || !existing.updatedAt) {
+              if (ct.mnemonic !== undefined) existing.mnemonic = ct.mnemonic;
+              if (ct.explanation !== undefined) existing.explanation = ct.explanation;
+              if (ct.proTip !== undefined) existing.proTip = ct.proTip;
+              if (ct.lightbulb !== undefined) existing.lightbulb = ct.lightbulb;
+              if (ct.title && ct.title !== existing.title) existing.title = ct.title;
+              if (ct.updatedAt) existing.updatedAt = ct.updatedAt;
+            }
           }
+        });
+
+        // 2. Clean localUnit: remove factory defaults deleted on other devices
+        const cloudTrickIds = new Set(cloudUnit.shortTricks.map(t => t.id));
+        const cloudTrickTitles = new Set(cloudUnit.shortTricks.map(t => (t.title || "").trim().toLowerCase()));
+        localUnit.shortTricks = localUnit.shortTricks.filter(lt => {
+          if (binManager.isDeleted(paperId, lt.id, lt.title)) return false;
+          const isCustom = lt.isCustom || (lt.id && String(lt.id).includes("custom"));
+          if (isCustom) return true;
+          return (lt.id && cloudTrickIds.has(lt.id)) || (lt.title && cloudTrickTitles.has((lt.title || "").trim().toLowerCase()));
         });
       }
 
-      // Merge theoryNotes: preserve all local items (unless deleted)
+      // Merge theoryNotes:
       if (cloudUnit.theoryNotes && Array.isArray(cloudUnit.theoryNotes)) {
         if (!localUnit.theoryNotes) localUnit.theoryNotes = [];
-        const localTheoryIds = new Set(localUnit.theoryNotes.map(t => t.id));
-        const localTheoryTitles = new Set(localUnit.theoryNotes.map(t => (t.title || "").trim().toLowerCase()));
 
         cloudUnit.theoryNotes.forEach(ct => {
+          if (!ct || binManager.isDeleted(paperId, ct.id, ct.title)) return;
           const tClean = (ct.title || "").trim().toLowerCase();
-          if (binManager.isDeleted(paperId, ct.id, ct.title)) return;
-          if (!localTheoryIds.has(ct.id) && !localTheoryTitles.has(tClean)) {
+          const existing = localUnit.theoryNotes.find(lt => (ct.id && lt.id === ct.id) || (lt.title && lt.title.trim().toLowerCase() === tClean));
+          if (!existing) {
             localUnit.theoryNotes.push(ct);
+          } else {
+            const cloudTime = new Date(ct.updatedAt || ct.createdAt || 0).getTime();
+            const localTime = new Date(existing.updatedAt || existing.createdAt || 0).getTime();
+            if (cloudTime >= localTime || !existing.updatedAt) {
+              if (ct.points !== undefined) existing.points = ct.points;
+              if (ct.content !== undefined) existing.content = ct.content;
+              if (ct.mindMap !== undefined) existing.mindMap = ct.mindMap;
+              if (ct.diagram !== undefined) existing.diagram = ct.diagram;
+              if (ct.title && ct.title !== existing.title) existing.title = ct.title;
+              if (ct.updatedAt) existing.updatedAt = ct.updatedAt;
+            }
           }
+        });
+
+        const cloudTheoryIds = new Set(cloudUnit.theoryNotes.map(t => t.id));
+        const cloudTheoryTitles = new Set(cloudUnit.theoryNotes.map(t => (t.title || "").trim().toLowerCase()));
+        localUnit.theoryNotes = localUnit.theoryNotes.filter(lt => {
+          if (binManager.isDeleted(paperId, lt.id, lt.title)) return false;
+          const isCustom = lt.isCustom || (lt.id && String(lt.id).includes("custom"));
+          if (isCustom) return true;
+          return (lt.id && cloudTheoryIds.has(lt.id)) || (lt.title && cloudTheoryTitles.has((lt.title || "").trim().toLowerCase()));
         });
       }
     });
@@ -374,11 +456,11 @@ export class DataManager {
     return localPaper;
   }
 
-  async syncFromCloud() {
+  async syncFromCloud(force = false) {
     if (this._isSyncing) return false;
     const now = Date.now();
-    if (this._lastSyncTime && (now - this._lastSyncTime < 25000)) {
-      return false; // Prevent redundant requests within 25s
+    if (!force && this._lastSyncTime && (now - this._lastSyncTime < 3000)) {
+      return false; // Responsive 3s throttle
     }
     this._isSyncing = true;
     try {
@@ -551,6 +633,7 @@ export class DataManager {
             }
           }
 
+          topic.updatedAt = new Date().toISOString();
           this.savePaperData(paperId);
           return topic;
         }
@@ -828,6 +911,7 @@ export class DataManager {
             }
           }
 
+          trick.updatedAt = new Date().toISOString();
           this.savePaperData(paperId);
           return trick;
         }

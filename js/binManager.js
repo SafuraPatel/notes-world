@@ -17,11 +17,11 @@ export class BinManager {
     this.items = this.loadItems();
     this.listeners = [];
 
-    // Deferred non-blocking sync: Allows instant UI render from localStorage
+    // Fast non-blocking startup sync
     setTimeout(() => {
-      this.syncFromCloud();
+      this.syncFromCloud(true);
       this.setupBackgroundSync();
-    }, 3500);
+    }, 50);
   }
 
   loadTombstones() {
@@ -45,6 +45,7 @@ export class BinManager {
     if (id) this.tombstones.add(String(id));
     if (title) {
       const p = paper || "paper1";
+      this.tombstones.add(String(title).trim().toLowerCase());
       this.tombstones.add(`${p}_${String(title).trim().toLowerCase()}`);
     }
     this.saveTombstones();
@@ -54,6 +55,7 @@ export class BinManager {
     if (id) this.tombstones.delete(String(id));
     if (title) {
       const p = paper || "paper1";
+      this.tombstones.delete(String(title).trim().toLowerCase());
       this.tombstones.delete(`${p}_${String(title).trim().toLowerCase()}`);
     }
     this.saveTombstones();
@@ -62,7 +64,10 @@ export class BinManager {
   isDeleted(paper, id, title) {
     if (id && this.tombstones.has(String(id))) return true;
     const p = paper || "paper1";
-    if (title && this.tombstones.has(`${p}_${String(title).trim().toLowerCase()}`)) return true;
+    if (title) {
+      const clean = String(title).trim().toLowerCase();
+      if (this.tombstones.has(clean) || this.tombstones.has(`${p}_${clean}`)) return true;
+    }
 
     // Also check current items in Recycle Bin
     const cleanT = (title || "").trim().toLowerCase();
@@ -106,43 +111,78 @@ export class BinManager {
   }
 
   setupBackgroundSync() {
-    // Non-intrusive background polling every 5 minutes
+    // Fast active polling (every 15s) when window/tab is visible
     setInterval(() => {
       if (document.visibilityState === "visible" && navigator.onLine) {
-        this.syncFromCloud();
+        this.syncFromCloud(false);
       }
-    }, 300000);
+    }, 15000);
+
+    // Immediate sync on tab visibility or window focus
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && navigator.onLine) {
+        this.syncFromCloud(true);
+      }
+    });
+    window.addEventListener("focus", () => {
+      if (navigator.onLine) {
+        this.syncFromCloud(true);
+      }
+    });
   }
 
-  async syncFromCloud() {
+  async syncFromCloud(force = false) {
     if (this._isSyncing) return false;
     const now = Date.now();
-    if (this._lastSyncTime && (now - this._lastSyncTime < 25000)) {
-      return false; // Throttle redundant syncs within 25s
+    if (!force && this._lastSyncTime && (now - this._lastSyncTime < 3000)) {
+      return false; // Responsive 3s throttle
     }
     this._isSyncing = true;
     try {
-      const res = await fetch(`/api/data?type=bin&_t=${Date.now()}`, {
-        cache: "no-store",
-        headers: {
-          "Cache-Control": "no-cache",
-          "Pragma": "no-cache"
+      let updatedBin = false;
+      let updatedTombs = false;
+
+      // 1. Sync Recycle Bin items & Tombstones concurrently
+      const [binRes, tombRes] = await Promise.all([
+        fetch(`/api/data?type=bin&_t=${Date.now()}`, {
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache", "Pragma": "no-cache" }
+        }).catch(() => null),
+        fetch(`/api/data?type=tombstones&_t=${Date.now()}`, {
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache", "Pragma": "no-cache" }
+        }).catch(() => null)
+      ]);
+
+      // Ingest Cloud Tombstones
+      if (tombRes && tombRes.ok) {
+        const tombJson = await tombRes.json().catch(() => null);
+        if (tombJson && Array.isArray(tombJson.tombstones)) {
+          tombJson.tombstones.forEach(t => {
+            if (t && !this.tombstones.has(String(t))) {
+              this.tombstones.add(String(t));
+              updatedTombs = true;
+            }
+          });
         }
-      });
-      if (res.ok) {
-        const json = await res.json();
+      }
+
+      // Ingest Cloud Recycle Bin
+      if (binRes && binRes.ok) {
+        const json = await binRes.json().catch(() => null);
         if (json && json.success) {
           if (json.bin === null) {
-            // Cloud DB not initialized for bin yet; seed it if local has items
-            if (this.items.length > 0) {
-              this.syncToCloud();
-            }
+            if (this.items.length > 0) this.syncToCloud();
           } else if (Array.isArray(json.bin)) {
-            // If incoming is empty but local has items and user hasn't explicitly emptied bin, seed cloud
-            if (json.bin.length === 0 && this.items.length > 0 && !localStorage.getItem(STORAGE_KEY + "_emptied")) {
-              this.syncToCloud();
-              return false;
-            }
+            // Also ingest bin items as tombstones immediately
+            json.bin.forEach(it => {
+              if (it) {
+                const norm = this.normalizeBinItem(it);
+                const prevSize = this.tombstones.size;
+                this.recordTombstone(norm.paper, norm.originalId || (norm.data && norm.data.id), norm.title);
+                if (this.tombstones.size !== prevSize) updatedTombs = true;
+              }
+            });
 
             const normalizedCloud = json.bin.map(it => this.normalizeBinItem(it));
             const currentStr = JSON.stringify(this.items);
@@ -151,11 +191,25 @@ export class BinManager {
               this.items = normalizedCloud;
               localStorage.setItem(STORAGE_KEY, incomingStr);
               this.notify();
-              return true;
+              updatedBin = true;
             }
           }
         }
       }
+
+      if (updatedTombs) {
+        this.saveTombstones();
+      }
+
+      // Purge any active deleted items across dataManager and notesManager
+      if (dataManager && typeof dataManager.purgeDeletedItems === "function") {
+        dataManager.purgeDeletedItems();
+      }
+      if (notesManager && typeof notesManager.purgeDeletedNotes === "function") {
+        notesManager.purgeDeletedNotes();
+      }
+
+      return updatedBin || updatedTombs;
     } catch (e) {
       // Offline fallback
     } finally {
@@ -167,14 +221,18 @@ export class BinManager {
 
   async syncToCloud() {
     try {
-      await fetch("/api/data", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-cache"
-        },
-        body: JSON.stringify({ type: "bin", bin: this.items.map(it => this.normalizeBinItem(it)) })
-      });
+      await Promise.all([
+        fetch("/api/data", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" },
+          body: JSON.stringify({ type: "bin", bin: this.items.map(it => this.normalizeBinItem(it)) })
+        }).catch(() => null),
+        fetch("/api/data", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" },
+          body: JSON.stringify({ type: "tombstones", tombstones: Array.from(this.tombstones) })
+        }).catch(() => null)
+      ]);
     } catch (e) {
       // Offline fallback
     }
