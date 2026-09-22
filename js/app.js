@@ -1850,7 +1850,11 @@ class AppController {
             showToast("Topic updated successfully!", "success");
           }
           this.closeAllModals();
-          store.setSelectedUnitId(unitId);
+          if (state.selectedUnitId !== "all" && state.selectedUnitId !== unitId) {
+            store.setSelectedUnitId(unitId);
+          } else {
+            this.render();
+          }
           setTimeout(() => {
             const card = document.querySelector(`.trick-card[data-trick-id="${trickId}"]`);
             if (card) {
@@ -1867,7 +1871,11 @@ class AppController {
         if (added) {
           showToast("New topic added successfully!", "success");
           this.closeAllModals();
-          store.setSelectedUnitId(unitId);
+          if (state.selectedUnitId !== "all" && state.selectedUnitId !== unitId) {
+            store.setSelectedUnitId(unitId);
+          } else {
+            this.render();
+          }
           setTimeout(() => {
             const card = document.querySelector(`.trick-card[data-trick-id="${added.id}"]`);
             if (card) {
@@ -2747,9 +2755,12 @@ class AppController {
       }
     });
 
-    // If viewing all units without search, sort user-added custom topics to the very top so they are never missed!
+    // If viewing all units without search, sort recently updated or custom topics to the very top so they are never missed!
     if (state.selectedUnitId === "all" && !state.searchQuery) {
       allTricks.sort((a, b) => {
+        const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+        const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+        if (timeA !== timeB) return timeB - timeA;
         const aCustom = Boolean(a.isCustom || (a.id && String(a.id).startsWith("custom_")));
         const bCustom = Boolean(b.isCustom || (b.id && String(b.id).startsWith("custom_")));
         if (aCustom && !bCustom) return -1;
@@ -2793,9 +2804,9 @@ class AppController {
       return;
     }
 
-    // Progressive rendering slice: 20 initial tricks for instantaneous render
+    // Display all topics in All Units view so none are hidden
     const displayLimit = (state.selectedUnitId === "all" && !state.searchQuery)
-      ? (this.tricksDisplayLimit || 20)
+      ? (this.tricksDisplayLimit || 150)
       : allTricks.length;
     const visibleTricks = allTricks.slice(0, displayLimit);
 

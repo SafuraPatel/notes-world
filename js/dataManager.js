@@ -393,16 +393,24 @@ export class DataManager {
           if (!existing) {
             localUnit.shortTricks.push(ct);
           } else {
-            // Bi-directional edit sync: update local fields if cloud version has edits
+            // Bi-directional edit sync: update local fields if cloud version has edits or content changed
             const cloudTime = new Date(ct.updatedAt || ct.createdAt || 0).getTime();
             const localTime = new Date(existing.updatedAt || existing.createdAt || 0).getTime();
-            if (cloudTime >= localTime || !existing.updatedAt) {
+            const contentChanged = (
+              (ct.explanation && ct.explanation !== existing.explanation) ||
+              (ct.mnemonic && ct.mnemonic !== existing.mnemonic) ||
+              (ct.lightbulb && ct.lightbulb !== existing.lightbulb) ||
+              (ct.proTip && ct.proTip !== existing.proTip) ||
+              (ct.title && ct.title !== existing.title)
+            );
+            if (cloudTime > localTime || contentChanged || !existing.updatedAt) {
               if (ct.mnemonic !== undefined) existing.mnemonic = ct.mnemonic;
               if (ct.explanation !== undefined) existing.explanation = ct.explanation;
               if (ct.proTip !== undefined) existing.proTip = ct.proTip;
               if (ct.lightbulb !== undefined) existing.lightbulb = ct.lightbulb;
               if (ct.title && ct.title !== existing.title) existing.title = ct.title;
               if (ct.updatedAt) existing.updatedAt = ct.updatedAt;
+              existing.isCustom = true;
             }
           }
         });
@@ -431,13 +439,19 @@ export class DataManager {
           } else {
             const cloudTime = new Date(ct.updatedAt || ct.createdAt || 0).getTime();
             const localTime = new Date(existing.updatedAt || existing.createdAt || 0).getTime();
-            if (cloudTime >= localTime || !existing.updatedAt) {
+            const contentChanged = (
+              (ct.content && ct.content !== existing.content) ||
+              (ct.title && ct.title !== existing.title) ||
+              (ct.diagram && ct.diagram !== existing.diagram)
+            );
+            if (cloudTime > localTime || contentChanged || !existing.updatedAt) {
               if (ct.points !== undefined) existing.points = ct.points;
               if (ct.content !== undefined) existing.content = ct.content;
               if (ct.mindMap !== undefined) existing.mindMap = ct.mindMap;
               if (ct.diagram !== undefined) existing.diagram = ct.diagram;
               if (ct.title && ct.title !== existing.title) existing.title = ct.title;
               if (ct.updatedAt) existing.updatedAt = ct.updatedAt;
+              existing.isCustom = true;
             }
           }
         });
@@ -883,7 +897,7 @@ export class DataManager {
 
     if (title && title.trim()) {
       const existing = this.findTrickByTitle(paperId, title.trim(), trickId);
-      if (existing) {
+      if (existing && existing.isExact) {
         console.warn(`Cannot update to duplicate trick title: "${title.trim()}" (exists in ${existing.unit.name})`);
         return null;
       }
@@ -911,6 +925,7 @@ export class DataManager {
             }
           }
 
+          trick.isCustom = true;
           trick.updatedAt = new Date().toISOString();
           this.savePaperData(paperId);
           return trick;
