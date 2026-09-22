@@ -334,9 +334,9 @@
             placeholder="e.g. Direct key hook, formula, or core takeaway">
         </div>
         <div class="modal-field">
-          <label for="trickModalMnemonic">Core Summary / Shortcut Rule:</label>
+          <label for="trickModalMnemonic">Core Summary / Shortcut Rule (Optional):</label>
           <textarea id="trickModalMnemonic" class="modal-textarea" rows="2"
-            placeholder="Key shortcut rule, mnemonic, or core concept formula..." required></textarea>
+            placeholder="Key shortcut rule, mnemonic, or core concept formula..."></textarea>
         </div>
         <div class="modal-field">
           <label>Topic Notes &amp; Content:</label>
@@ -362,17 +362,17 @@
       <form id="noteModalForm" class="modal-form">
         <input type="hidden" id="noteModalNoteId" value="">
         <div class="modal-field">
-          <label for="noteModalUnitSelect">Select Unit:</label>
-          <select id="noteModalUnitSelect" class="modal-input" required>
+          <label for="noteModalUnitSelect">Unit:</label>
+          <select id="noteModalUnitSelect" class="modal-input">
             <!-- Populated via JS -->
           </select>
         </div>
         <div class="modal-field">
           <label for="noteModalTitleInput">Point Title:</label>
-          <input type="text" id="noteModalTitleInput" class="modal-input" placeholder="e.g. Bloom taxonomy" required>
+          <input type="text" id="noteModalTitleInput" class="modal-input" placeholder="Title" required>
         </div>
         <div class="modal-field">
-          <label>Point Notes:</label>
+          <label>Study Notes &amp; Points:</label>
           <div id="noteModalEditor" class="rich-editor-box"></div>
         </div>
         <div class="modal-field">
@@ -393,25 +393,23 @@
     </div>
 
     <!-- 4. Mind Map Editor Modal -->
-    <div id="mindMapModal" class="app-modal mindmap-editor-modal" style="display: none;" role="dialog"
-      aria-modal="true">
+    <div id="mindMapModal" class="app-modal" style="display: none;" role="dialog" aria-modal="true">
       <div class="modal-header">
-        <h3 id="mindMapModalTitle" class="modal-title">🗺️ Edit Mind Map</h3>
+        <h3 id="mindMapModalTitle" class="modal-title">🧠 Interactive Mind Map Editor</h3>
         <button id="btnCloseMindMapModal" class="modal-close-btn" type="button" aria-label="Close">✕</button>
       </div>
       <form id="mindMapModalForm" class="modal-form">
         <input type="hidden" id="mindMapTopicId" value="">
         <div class="modal-field">
-          <label for="mindMapCentralTopic">Central Topic / Root Concept:</label>
-          <input type="text" id="mindMapCentralTopic" class="modal-input"
-            placeholder="e.g. Computer Networks Architecture" required>
+          <label for="mindMapCentralTopic">Central Concept / Subject:</label>
+          <input type="text" id="mindMapCentralTopic" class="modal-input" placeholder="e.g. Memory Hierarchy, Sampling Types" required>
         </div>
         <div class="modal-field">
-          <div class="mindmap-edit-header-row">
-            <label class="mindmap-edit-section-label">Branches &amp; Sub-Nodes:</label>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+            <label style="margin-bottom: 0;">Mind Map Branches (Sub-concepts &amp; Flow):</label>
             <button type="button" id="btnAddMindMapBranch" class="btn-action-small">➕ Add Branch</button>
           </div>
-          <div id="mindMapBranchesContainer" class="mindmap-edit-branches-list">
+          <div id="mindMapBranchesContainer" class="mind-map-branches-editor">
             <!-- Dynamically populated via JS -->
           </div>
         </div>
@@ -426,18 +424,19 @@
     <div id="duplicateTopicModal" class="app-modal duplicate-confirm-modal" style="display: none;" role="dialog"
       aria-modal="true">
       <div class="modal-header">
-        <h3 class="modal-title">⚠️ Topic Already Exists</h3>
+        <h3 class="modal-title">⚠️ Topic Similar or Exists</h3>
         <button id="btnCloseDuplicateModal" class="modal-close-btn" type="button" aria-label="Close">✕</button>
       </div>
       <div class="duplicate-modal-body">
-        <div class="duplicate-icon-wrap">🚫</div>
+        <div class="duplicate-icon-wrap">💡</div>
         <p id="duplicateModalMessage" class="duplicate-modal-text">
-          A topic covering this concept already exists in this paper. You cannot rewrite an existing topic. Would you like to update the existing topic instead?
+          A topic covering this concept already exists in this paper. You can update the existing topic or save this as a separate new topic.
         </p>
       </div>
       <div class="modal-actions duplicate-modal-actions">
-        <button type="button" id="btnConfirmDuplicateUpdate" class="btn-modal-save">✏️ Update Existing Topic</button>
-        <button type="button" id="btnCancelDuplicateModal" class="btn-modal-cancel">Cancel / Change Title</button>
+        <button type="button" id="btnConfirmDuplicateUpdate" class="btn-modal-save">✏️ Update Existing</button>
+        <button type="button" id="btnSaveAnywayDuplicate" class="btn-modal-save" style="background: var(--accent-emerald, #10b981);">➕ Save as New Topic</button>
+        <button type="button" id="btnCancelDuplicateModal" class="btn-modal-cancel">Cancel</button>
       </div>
     </div>
 

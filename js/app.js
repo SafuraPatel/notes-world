@@ -280,6 +280,7 @@ class AppController {
     this.btnCloseDuplicateModal = document.getElementById("btnCloseDuplicateModal");
     this.btnCancelDuplicateModal = document.getElementById("btnCancelDuplicateModal");
     this.btnConfirmDuplicateUpdate = document.getElementById("btnConfirmDuplicateUpdate");
+    this.btnSaveAnywayDuplicate = document.getElementById("btnSaveAnywayDuplicate");
     this.trickTopicDuplicateNotice = document.getElementById("trickTopicDuplicateNotice");
 
     // Theory Modal elements
@@ -876,6 +877,14 @@ class AppController {
           this.closeAllModals();
           this.openEditTrickModal(matched.id);
           showToast(`Switched to editing existing topic "${matched.title}".`, "info");
+        }
+      });
+    }
+    if (this.btnSaveAnywayDuplicate) {
+      this.btnSaveAnywayDuplicate.addEventListener("click", () => {
+        this.closeDuplicateModal();
+        if (this._onDuplicateSaveAnyway) {
+          this._onDuplicateSaveAnyway();
         }
       });
     }
@@ -1577,14 +1586,15 @@ class AppController {
     }
   }
 
-  showDuplicateTopicPrompt({ title, existingTopic, unitTitle, onUpdate, onCancel }) {
+  showDuplicateTopicPrompt({ title, existingTopic, unitTitle, onUpdate, onSaveAnyway, onCancel }) {
     this._onDuplicateCancel = onCancel;
     this._onDuplicateUpdate = onUpdate;
+    this._onDuplicateSaveAnyway = onSaveAnyway;
     this._pendingDuplicateTopic = existingTopic;
 
     if (this.duplicateModalMessage) {
       const matchTitle = existingTopic ? existingTopic.title : title;
-      this.duplicateModalMessage.innerHTML = `A topic matching this concept already exists in this paper:<br><br><strong style="color: var(--accent-trick, #f59e0b);">"${escapeHtml(matchTitle)}"</strong> in <em>${escapeHtml(unitTitle)}</em>.<br><br>Duplicate topics cannot be rewritten. Would you like to update the existing topic instead?`;
+      this.duplicateModalMessage.innerHTML = `A topic with a similar concept already exists in this paper:<br><br><strong style="color: var(--accent-trick, #f59e0b);">"${escapeHtml(matchTitle)}"</strong> in <em>${escapeHtml(unitTitle)}</em>.<br><br>You can choose to update the existing topic, or save your topic as a separate new entry:`;
     }
 
     if (this.modalOverlay) this.modalOverlay.style.display = "block";
@@ -1770,14 +1780,70 @@ class AppController {
     const explanation = trickEditor ? trickEditor.getHtml() : "";
     const proTip = this.trickModalProTip.value.trim();
 
-    if (!title || !mnemonic || !explanation) {
-      showToast("Please enter title, mnemonic, and explanation!", "info");
+    if (!title) {
+      showToast("Please enter a topic title!", "info");
+      this.trickModalTitleInput.focus();
       return;
     }
 
+    const hasContent = Boolean(explanation || mnemonic || lightbulb || proTip);
+    if (!hasContent) {
+      showToast("Please enter notes, a key summary, or a shortcut rule!", "info");
+      return;
+    }
+
+    const finalMnemonic = mnemonic || (lightbulb ? lightbulb : "Core Key Point");
+    const finalExplanation = explanation || (mnemonic ? `<p>${escapeHtml(mnemonic)}</p>` : `<p>${escapeHtml(lightbulb)}</p>`);
+
+    const executeSave = () => {
+      if (trickId) {
+        const match = dataManager.getTrick(state.activePaper, trickId);
+        const oldUnitId = match ? match.unit.id : null;
+        const updated = dataManager.updateTrick(state.activePaper, trickId, { unitId, title, lightbulb, mnemonic: finalMnemonic, explanation: finalExplanation, proTip });
+        if (updated) {
+          if (oldUnitId && oldUnitId !== unitId) {
+            const newUnit = store.getCurrentPaperData().units.find(u => u.id === unitId);
+            const uLabel = newUnit ? (newUnit.id === "general" ? "General Points" : `Unit ${newUnit.unitNumber}`) : "new unit";
+            showToast(`Topic updated and moved to ${uLabel}!`, "success");
+          } else {
+            showToast("Topic updated successfully!", "success");
+          }
+          this.closeAllModals();
+          store.setSelectedUnitId(unitId);
+          setTimeout(() => {
+            const card = document.querySelector(`.trick-card[data-trick-id="${trickId}"]`);
+            if (card) {
+              card.scrollIntoView({ behavior: "smooth", block: "center" });
+              card.classList.add("card-highlight-pulse");
+              setTimeout(() => card.classList.remove("card-highlight-pulse"), 2500);
+            }
+          }, 150);
+        } else {
+          showToast("Could not update topic.", "error");
+        }
+      } else {
+        const added = dataManager.addTrick(state.activePaper, unitId, { title, lightbulb, mnemonic: finalMnemonic, explanation: finalExplanation, proTip });
+        if (added) {
+          showToast("New topic added successfully!", "success");
+          this.closeAllModals();
+          store.setSelectedUnitId(unitId);
+          setTimeout(() => {
+            const card = document.querySelector(`.trick-card[data-trick-id="${added.id}"]`);
+            if (card) {
+              card.scrollIntoView({ behavior: "smooth", block: "center" });
+              card.classList.add("card-highlight-pulse");
+              setTimeout(() => card.classList.remove("card-highlight-pulse"), 2500);
+            }
+          }, 150);
+        } else {
+          showToast("A topic with this title already exists in this unit.", "warning");
+        }
+      }
+    };
+
     // Check duplicate topic using fuzzy similarity across words and concepts
     const similarMatch = dataManager.findSimilarTopic(state.activePaper, title, trickId || null);
-    if (similarMatch) {
+    if (similarMatch && !trickId) {
       const matchTopic = similarMatch.topic;
       const matchUnit = similarMatch.unit;
       const unitTitle = matchUnit.name || matchUnit.title || "this paper";
@@ -1790,6 +1856,9 @@ class AppController {
           this.openEditTrickModal(existing.id);
           showToast(`Switched to editing existing topic "${existing.title}".`, "info");
         },
+        onSaveAnyway: () => {
+          executeSave();
+        },
         onCancel: () => {
           if (this.trickModalTitleInput) {
             this.trickModalTitleInput.focus();
@@ -1800,31 +1869,7 @@ class AppController {
       return;
     }
 
-    if (trickId) {
-      const match = dataManager.getTrick(state.activePaper, trickId);
-      const oldUnitId = match ? match.unit.id : null;
-      const updated = dataManager.updateTrick(state.activePaper, trickId, { unitId, title, lightbulb, mnemonic, explanation, proTip });
-      if (updated) {
-        if (oldUnitId && oldUnitId !== unitId) {
-          const newUnit = store.getCurrentPaperData().units.find(u => u.id === unitId);
-          const uLabel = newUnit ? (newUnit.id === "general" ? "General Points" : `Unit ${newUnit.unitNumber}`) : "new unit";
-          showToast(`Topic updated and moved to ${uLabel}!`, "success");
-        } else {
-          showToast("Topic updated successfully!", "success");
-        }
-      } else {
-        showToast("Could not update topic.", "error");
-      }
-    } else {
-      const added = dataManager.addTrick(state.activePaper, unitId, { title, lightbulb, mnemonic, explanation, proTip });
-      if (added) {
-        showToast("New topic added successfully!", "success");
-      } else {
-        showToast("Could not add topic. Duplicate title exists.", "warning");
-      }
-    }
-
-    this.closeAllModals();
+    executeSave();
   }
 
   populateNoteModalUnitOptions(selectElement, defaultUnitId) {
@@ -2660,6 +2705,17 @@ class AppController {
         });
       }
     });
+
+    // If viewing all units without search, sort user-added custom topics to the very top so they are never missed!
+    if (state.selectedUnitId === "all" && !state.searchQuery) {
+      allTricks.sort((a, b) => {
+        const aCustom = Boolean(a.isCustom || (a.id && String(a.id).startsWith("custom_")));
+        const bCustom = Boolean(b.isCustom || (b.id && String(b.id).startsWith("custom_")));
+        if (aCustom && !bCustom) return -1;
+        if (!aCustom && bCustom) return 1;
+        return 0;
+      });
+    }
 
     const q = (state.searchQuery || "").trim();
     if (q) {

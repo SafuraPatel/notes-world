@@ -9,9 +9,11 @@ import { dataManager } from "./dataManager.js";
 import { notesManager } from "./notesManager.js";
 
 const STORAGE_KEY = "notes_world_recycle_bin_v1";
+const TOMBSTONES_KEY = "notes_world_deleted_tombstones_v1";
 
 export class BinManager {
   constructor() {
+    this.tombstones = this.loadTombstones();
     this.items = this.loadItems();
     this.listeners = [];
 
@@ -20,6 +22,57 @@ export class BinManager {
       this.syncFromCloud();
       this.setupBackgroundSync();
     }, 3500);
+  }
+
+  loadTombstones() {
+    try {
+      const raw = localStorage.getItem(TOMBSTONES_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return new Set(parsed);
+      }
+    } catch (e) {}
+    return new Set();
+  }
+
+  saveTombstones() {
+    try {
+      localStorage.setItem(TOMBSTONES_KEY, JSON.stringify(Array.from(this.tombstones)));
+    } catch (e) {}
+  }
+
+  recordTombstone(paper, id, title) {
+    if (id) this.tombstones.add(String(id));
+    if (title) {
+      const p = paper || "paper1";
+      this.tombstones.add(`${p}_${String(title).trim().toLowerCase()}`);
+    }
+    this.saveTombstones();
+  }
+
+  removeTombstone(paper, id, title) {
+    if (id) this.tombstones.delete(String(id));
+    if (title) {
+      const p = paper || "paper1";
+      this.tombstones.delete(`${p}_${String(title).trim().toLowerCase()}`);
+    }
+    this.saveTombstones();
+  }
+
+  isDeleted(paper, id, title) {
+    if (id && this.tombstones.has(String(id))) return true;
+    const p = paper || "paper1";
+    if (title && this.tombstones.has(`${p}_${String(title).trim().toLowerCase()}`)) return true;
+
+    // Also check current items in Recycle Bin
+    const cleanT = (title || "").trim().toLowerCase();
+    return this.items.some(it => {
+      if (id && (it.originalId === id || it.id === id || (it.data && it.data.id === id))) return true;
+      if (cleanT && (it.title || "").trim().toLowerCase() === cleanT) {
+        if (!it.paper || it.paper === p) return true;
+      }
+      return false;
+    });
   }
 
   normalizeBinItem(it) {
@@ -39,7 +92,11 @@ export class BinManager {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed.map(it => this.normalizeBinItem(it));
+          const list = parsed.map(it => this.normalizeBinItem(it));
+          list.forEach(it => {
+            if (it) this.recordTombstone(it.paper, it.originalId || (it.data && it.data.id), it.title);
+          });
+          return list;
         }
       }
     } catch (e) {
@@ -164,6 +221,7 @@ export class BinManager {
       deletedAt: new Date().toISOString()
     };
 
+    this.recordTombstone(effectivePaper, entry.originalId, entry.title);
     this.items.unshift(entry);
     this.save();
     return entry;
@@ -178,6 +236,7 @@ export class BinManager {
 
     const [item] = this.items.splice(idx, 1);
     this.normalizeBinItem(item);
+    this.removeTombstone(item.paper, item.originalId || (item.data && item.data.id), item.title);
     let success = false;
 
     if (item.type === "theory") {
@@ -193,6 +252,7 @@ export class BinManager {
       return item;
     } else {
       // Put back if restore failed
+      this.recordTombstone(item.paper, item.originalId || (item.data && item.data.id), item.title);
       this.items.splice(idx, 0, item);
       return null;
     }

@@ -7,6 +7,7 @@
 
 import { paper1Data as defaultP1 } from "./data/paper1Data.js";
 import { paper2Data as defaultP2 } from "./data/paper2Data.js";
+import { binManager } from "./binManager.js";
 
 const STORAGE_KEY_P1 = "notes_world_data_p1_v5";
 const STORAGE_KEY_P2 = "notes_world_data_p2_v5";
@@ -219,6 +220,7 @@ export class DataManager {
               if (u.shortTricks && Array.isArray(u.shortTricks)) {
                 u.shortTricks.forEach(tr => {
                   if (tr && tr.title) {
+                    if (binManager.isDeleted(paperId, tr.id, tr.title)) return;
                     const cleanKey = (tr.title || "").trim().toLowerCase();
                     if (!allKnownTricks.has(cleanKey)) {
                       allKnownTricks.set(cleanKey, { unitId: u.id, trick: tr });
@@ -236,6 +238,16 @@ export class DataManager {
       baseData = JSON.parse(JSON.stringify(defaultData));
     }
 
+    // Filter out any previously deleted items from baseData
+    baseData.units.forEach(u => {
+      if (u.shortTricks && Array.isArray(u.shortTricks)) {
+        u.shortTricks = u.shortTricks.filter(tr => !binManager.isDeleted(paperId, tr.id, tr.title));
+      }
+      if (u.theoryNotes && Array.isArray(u.theoryNotes)) {
+        u.theoryNotes = u.theoryNotes.filter(tn => !binManager.isDeleted(paperId, tn.id, tn.title));
+      }
+    });
+
     this.ensureGeneralUnit(baseData);
 
     // Make sure all default units exist & unit names are canonical
@@ -249,7 +261,7 @@ export class DataManager {
       }
     });
 
-    // Ensure all default tricks are present
+    // Ensure all default tricks are present (unless deleted by user)
     defaultData.units.forEach(defU => {
       const targetU = baseData.units.find(u => u.id === defU.id);
       if (targetU && defU.shortTricks) {
@@ -257,6 +269,7 @@ export class DataManager {
         const existingTrickTitles = new Set(targetU.shortTricks.map(t => (t.title || "").trim().toLowerCase()));
         defU.shortTricks.forEach(dt => {
           const dtTitle = (dt.title || "").trim().toLowerCase();
+          if (binManager.isDeleted(paperId, dt.id, dt.title)) return;
           if (!existingTrickTitles.has(dtTitle)) {
             targetU.shortTricks.push(JSON.parse(JSON.stringify(dt)));
             existingTrickTitles.add(dtTitle);
@@ -267,6 +280,7 @@ export class DataManager {
 
     // Merge any user-added custom tricks and preserve user modifications from historical localStorage keys
     allKnownTricks.forEach(({ unitId, trick }) => {
+      if (binManager.isDeleted(paperId, trick.id, trick.title)) return;
       let targetUnit = baseData.units.find(u => u.id === unitId);
       if (!targetUnit) targetUnit = baseData.units.find(u => u.id === "general") || baseData.units[0];
       if (!targetUnit.shortTricks) targetUnit.shortTricks = [];
@@ -304,9 +318,19 @@ export class DataManager {
     return baseData;
   }
 
-  safeMergePaperData(localPaper, cloudPaper) {
+  safeMergePaperData(localPaper, cloudPaper, paperId = "paper1") {
     if (!cloudPaper || !cloudPaper.units) return localPaper;
     if (!localPaper || !localPaper.units) return cloudPaper;
+
+    // Filter out any deleted items from localPaper
+    localPaper.units.forEach(u => {
+      if (u.shortTricks && Array.isArray(u.shortTricks)) {
+        u.shortTricks = u.shortTricks.filter(t => !binManager.isDeleted(paperId, t.id, t.title));
+      }
+      if (u.theoryNotes && Array.isArray(u.theoryNotes)) {
+        u.theoryNotes = u.theoryNotes.filter(t => !binManager.isDeleted(paperId, t.id, t.title));
+      }
+    });
 
     // Never erase local topics or tricks during cloud sync!
     cloudPaper.units.forEach(cloudUnit => {
@@ -316,7 +340,7 @@ export class DataManager {
         return;
       }
 
-      // Merge shortTricks (Topics): preserve all local items and append new cloud items
+      // Merge shortTricks (Topics): preserve all local items and append new cloud items (unless deleted)
       if (cloudUnit.shortTricks && Array.isArray(cloudUnit.shortTricks)) {
         if (!localUnit.shortTricks) localUnit.shortTricks = [];
         const localTrickIds = new Set(localUnit.shortTricks.map(t => t.id));
@@ -324,13 +348,14 @@ export class DataManager {
 
         cloudUnit.shortTricks.forEach(ct => {
           const tClean = (ct.title || "").trim().toLowerCase();
+          if (binManager.isDeleted(paperId, ct.id, ct.title)) return;
           if (!localTrickIds.has(ct.id) && !localTrickTitles.has(tClean)) {
             localUnit.shortTricks.push(ct);
           }
         });
       }
 
-      // Merge theoryNotes: preserve all local items
+      // Merge theoryNotes: preserve all local items (unless deleted)
       if (cloudUnit.theoryNotes && Array.isArray(cloudUnit.theoryNotes)) {
         if (!localUnit.theoryNotes) localUnit.theoryNotes = [];
         const localTheoryIds = new Set(localUnit.theoryNotes.map(t => t.id));
@@ -338,6 +363,7 @@ export class DataManager {
 
         cloudUnit.theoryNotes.forEach(ct => {
           const tClean = (ct.title || "").trim().toLowerCase();
+          if (binManager.isDeleted(paperId, ct.id, ct.title)) return;
           if (!localTheoryIds.has(ct.id) && !localTheoryTitles.has(tClean)) {
             localUnit.theoryNotes.push(ct);
           }
@@ -378,7 +404,7 @@ export class DataManager {
               });
 
               // Lossless merge: keep local additions so cloud responses NEVER erase user data
-              const merged = this.safeMergePaperData(this.data[paperId], json.data);
+              const merged = this.safeMergePaperData(this.data[paperId], json.data, paperId);
               this.deduplicatePaperUnits(merged);
 
               const currentStr = JSON.stringify(this.data[paperId]);
@@ -568,6 +594,44 @@ export class DataManager {
     return null;
   }
 
+  cleanLegacyTheoryFromStorage(paperId, id, title) {
+    const pSuffix = paperId === "paper1" ? "p1" : "p2";
+    const keys = [
+      `notes_world_data_${pSuffix}_v4`,
+      `notes_world_data_${pSuffix}_v3`,
+      `notes_world_data_${pSuffix}_v2`,
+      `notes_world_data_${pSuffix}_v1`,
+      `notes_world_data_${pSuffix}`,
+      `notes_world_${paperId}`
+    ];
+    const cleanT = (title || "").trim().toLowerCase();
+    for (const k of keys) {
+      try {
+        const raw = localStorage.getItem(k);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.units)) {
+            let changed = false;
+            parsed.units.forEach(u => {
+              if (u.theoryNotes && Array.isArray(u.theoryNotes)) {
+                const initLen = u.theoryNotes.length;
+                u.theoryNotes = u.theoryNotes.filter(t => {
+                  if (id && t.id === id) return false;
+                  if (cleanT && (t.title || "").trim().toLowerCase() === cleanT) return false;
+                  return true;
+                });
+                if (u.theoryNotes.length !== initLen) changed = true;
+              }
+            });
+            if (changed) {
+              localStorage.setItem(k, JSON.stringify(parsed));
+            }
+          }
+        }
+      } catch (e) {}
+    }
+  }
+
   deleteTheoryTopic(paperId, topicId) {
     const paper = this.data[paperId];
     for (const unit of paper.units) {
@@ -575,6 +639,8 @@ export class DataManager {
         const idx = unit.theoryNotes.findIndex(t => t.id === topicId);
         if (idx !== -1) {
           const [deleted] = unit.theoryNotes.splice(idx, 1);
+          binManager.recordTombstone(paperId, deleted.id, deleted.title);
+          this.cleanLegacyTheoryFromStorage(paperId, deleted.id, deleted.title);
           this.savePaperData(paperId);
           return { topic: deleted, unit };
         }
@@ -588,6 +654,8 @@ export class DataManager {
     const paper = this.data[paperId];
     if (!paper || !paper.units) return false;
     this.ensureGeneralUnit(paper);
+
+    binManager.removeTombstone(paperId, topicData.id, topicData.title);
 
     let targetUnit = paper.units.find(u => u.id === unitId);
     if (!targetUnit) targetUnit = paper.units[0];
@@ -691,17 +759,23 @@ export class DataManager {
     if (!title || !title.trim()) return null;
     const cleanTitle = title.trim();
 
-    // Prevent duplicate trick / topic titles (even if in different words)
-    const existing = this.findTrickByTitle(paperId, cleanTitle);
-    if (existing) {
-      console.warn(`Duplicate topic title blocked: "${cleanTitle}" already exists as "${existing.trick.title}" in ${existing.unit.name}`);
-      return null;
-    }
+    // Clear any previous tombstone in case user is re-adding a topic
+    binManager.removeTombstone(paperId, null, cleanTitle);
 
     const paper = this.data[paperId];
     this.ensureGeneralUnit(paper);
-    const unit = paper.units.find(u => u.id === unitId) || paper.units[0];
+    let unit = paper.units.find(u => u.id === unitId);
+    if (!unit) {
+      unit = paper.units.find(u => u.id === "general") || paper.units[0];
+    }
     if (!unit.shortTricks) unit.shortTricks = [];
+
+    // Only block if exact same title already exists in THIS specific unit
+    const exactInUnit = unit.shortTricks.some(t => (t.title || "").trim().toLowerCase() === cleanTitle.toLowerCase());
+    if (exactInUnit) {
+      console.warn(`Exact topic title "${cleanTitle}" already exists in ${unit.name}`);
+      return null;
+    }
 
     const newTrick = {
       id: `custom_trick_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -709,7 +783,9 @@ export class DataManager {
       mnemonic: (mnemonic || "").trim(),
       explanation: (explanation || "").trim(),
       proTip: (proTip || "").trim(),
-      lightbulb: (lightbulb || "").trim()
+      lightbulb: (lightbulb || "").trim(),
+      isCustom: true,
+      createdAt: new Date().toISOString()
     };
 
     unit.shortTricks.unshift(newTrick);
@@ -760,6 +836,44 @@ export class DataManager {
     return null;
   }
 
+  cleanLegacyTrickFromStorage(paperId, id, title) {
+    const pSuffix = paperId === "paper1" ? "p1" : "p2";
+    const keys = [
+      `notes_world_data_${pSuffix}_v4`,
+      `notes_world_data_${pSuffix}_v3`,
+      `notes_world_data_${pSuffix}_v2`,
+      `notes_world_data_${pSuffix}_v1`,
+      `notes_world_data_${pSuffix}`,
+      `notes_world_${paperId}`
+    ];
+    const cleanT = (title || "").trim().toLowerCase();
+    for (const k of keys) {
+      try {
+        const raw = localStorage.getItem(k);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.units)) {
+            let changed = false;
+            parsed.units.forEach(u => {
+              if (u.shortTricks && Array.isArray(u.shortTricks)) {
+                const initLen = u.shortTricks.length;
+                u.shortTricks = u.shortTricks.filter(tr => {
+                  if (id && tr.id === id) return false;
+                  if (cleanT && (tr.title || "").trim().toLowerCase() === cleanT) return false;
+                  return true;
+                });
+                if (u.shortTricks.length !== initLen) changed = true;
+              }
+            });
+            if (changed) {
+              localStorage.setItem(k, JSON.stringify(parsed));
+            }
+          }
+        }
+      } catch (e) {}
+    }
+  }
+
   deleteTrick(paperId, trickId) {
     const paper = this.data[paperId];
     for (const unit of paper.units) {
@@ -767,6 +881,8 @@ export class DataManager {
         const idx = unit.shortTricks.findIndex(tr => tr.id === trickId);
         if (idx !== -1) {
           const [deleted] = unit.shortTricks.splice(idx, 1);
+          binManager.recordTombstone(paperId, deleted.id, deleted.title);
+          this.cleanLegacyTrickFromStorage(paperId, deleted.id, deleted.title);
           this.savePaperData(paperId);
           return { trick: deleted, unit };
         }
@@ -783,6 +899,8 @@ export class DataManager {
     const paper = this.data[paperId];
     if (!paper || !paper.units) return false;
     this.ensureGeneralUnit(paper);
+
+    binManager.removeTombstone(paperId, trickData.id, trickData.title);
 
     let targetUnit = paper.units.find(u => u.id === unitId);
     if (!targetUnit) targetUnit = paper.units.find(u => u.id === "general") || paper.units[0];

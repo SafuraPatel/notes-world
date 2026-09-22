@@ -5,6 +5,8 @@
  * Newly added points always display at the very top.
  */
 
+import { binManager } from "./binManager.js";
+
 const STORAGE_KEY = "notes_world_study_points_v2";
 
 export class NotesManager {
@@ -38,6 +40,7 @@ export class NotesManager {
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed)) {
             parsed.forEach(n => {
+              if (binManager.isDeleted(n.paper, n.id, n.title)) return;
               const k = `${n.paper || "paper1"}_${(n.title || "").trim().toLowerCase()}`;
               if (!seen.has(k)) {
                 seen.add(k);
@@ -106,12 +109,14 @@ export class NotesManager {
       if (res.ok) {
         const json = await res.json();
         if (json && json.success && json.notes && Array.isArray(json.notes)) {
-          // Lossless union merge: NEVER erase local notes during cloud sync!
+          // Filter local notes against binManager
+          this.notes = this.notes.filter(n => !binManager.isDeleted(n.paper, n.id, n.title));
           const localIds = new Set(this.notes.map(n => n.id));
           const localTitles = new Set(this.notes.map(n => (n.title || "").trim().toLowerCase()));
           let addedNew = false;
 
           json.notes.forEach(cn => {
+            if (binManager.isDeleted(cn.paper, cn.id, cn.title)) return;
             const cTitle = (cn.title || "").trim().toLowerCase();
             if (!localIds.has(cn.id) && !localTitles.has(cTitle)) {
               this.notes.push(cn);
@@ -189,6 +194,7 @@ export class NotesManager {
 
   addNote({ paper, unitId, unitName, title, content, color = "#6366f1" }) {
     const cleanTitle = (title || "").trim() || "My Point";
+    binManager.removeTombstone(paper, null, cleanTitle);
     const existing = this.findNoteByTitle(paper, cleanTitle);
     if (existing) {
       console.warn(`Duplicate note title blocked: "${cleanTitle}"`);
@@ -243,10 +249,39 @@ export class NotesManager {
     }) || null;
   }
 
+  cleanLegacyNotesFromStorage(id, title) {
+    const candidateKeys = [
+      "notes_world_study_points_v1",
+      "notes_world_study_points",
+      "notes_world_notepad_v1"
+    ];
+    const cleanT = (title || "").trim().toLowerCase();
+    for (const key of candidateKeys) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            const filtered = parsed.filter(n => {
+              if (id && n.id === id) return false;
+              if (cleanT && (n.title || "").trim().toLowerCase() === cleanT) return false;
+              return true;
+            });
+            if (filtered.length !== parsed.length) {
+              localStorage.setItem(key, JSON.stringify(filtered));
+            }
+          }
+        }
+      } catch (e) {}
+    }
+  }
+
   deleteNote(id) {
     const idx = this.notes.findIndex(n => n.id === id);
     if (idx !== -1) {
       const [deleted] = this.notes.splice(idx, 1);
+      binManager.recordTombstone(deleted.paper, deleted.id, deleted.title);
+      this.cleanLegacyNotesFromStorage(deleted.id, deleted.title);
       this.saveToStorage();
       return deleted;
     }
@@ -255,6 +290,7 @@ export class NotesManager {
 
   restoreNote(noteData) {
     if (!noteData) return false;
+    binManager.removeTombstone(noteData.paper, noteData.id, noteData.title);
     const existingIdx = this.notes.findIndex(n => n.id === noteData.id);
     if (existingIdx !== -1) {
       this.notes[existingIdx] = noteData;
